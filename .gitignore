@@ -1,0 +1,30 @@
+# Node/Frontend
+node_modules/
+dist/
+dist-ssr/
+*.local
+.eslintcache
+*.tsbuildinfo
+
+# Python/Backend
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+.env.local
+.venv/
+venv/
+ENV/
+backend/uploads/*
+!backend/uploads/.gitkeep
+backend/static/exercises/*
+!backend/static/exercises/.gitkeep
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
