@@ -243,7 +243,7 @@ export default function LiveSessionPage() {
           {/* PS3 stub */}
           <div className="flex items-center gap-1 text-slate-400 text-xs">
             <Heart className="w-3 h-3" />
-            <span className="badge-mock">PS3 — Not Connected</span>
+            <span className="badge-mock">Sensor — Not Connected</span>
           </div>
           {/* WS status */}
           {wsConnected ? (
@@ -338,11 +338,11 @@ export default function LiveSessionPage() {
             <div className="integration-stub">
               <div className="flex items-center gap-2 mb-2">
                 <Zap className="w-4 h-4 text-slate-400" />
-                <span className="text-sm font-semibold text-slate-500">PS3 Sensor Hub</span>
+                <span className="text-sm font-semibold text-slate-500">Sensor Hub</span>
                 <span className="badge-mock">Not Connected</span>
               </div>
               <p className="text-xs text-slate-400">
-                Wearable IMU sensor integration available after PS3 module completion.
+                Wearable IMU sensor integration available after module completion.
                 Connect device via Bluetooth or USB serial.
               </p>
             </div>

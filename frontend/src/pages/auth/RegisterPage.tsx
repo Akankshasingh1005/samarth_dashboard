@@ -50,7 +50,7 @@ export default function RegisterPage() {
 
         <div className="relative z-10 flex flex-col justify-center px-16 text-white">
           <div className="flex items-center gap-3 mb-12">
-            <img src="/logo.png" alt="Samarth" className="w-12 h-12 rounded-full object-cover" />
+            <img src="/logo.jpeg" alt="Samarth" className="w-12 h-12 rounded-full object-cover" />
             <span className="text-3xl font-display font-bold">Samarth</span>
           </div>
 
@@ -79,7 +79,7 @@ export default function RegisterPage() {
         <div className="w-full max-w-md">
           {/* Mobile logo */}
           <div className="flex items-center gap-3 mb-8 lg:hidden">
-            <img src="/logo.png" alt="Samarth" className="w-10 h-10 rounded-full object-cover" />
+            <img src="/logo.jpeg" alt="Samarth" className="w-10 h-10 rounded-full object-cover" />
             <span className="text-2xl font-display font-bold text-[#0F172A]">Samarth</span>
           </div>
 

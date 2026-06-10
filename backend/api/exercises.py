@@ -64,8 +64,7 @@ async def get_exercise(exercise_id: str, current_user: User = Depends(get_curren
     return _to_out(exercise)
 
 
-@router.post("/seed", status_code=201, summary="Seed Day-1 exercises (admin only)")
-async def seed_exercises(admin: User = Depends(get_current_admin)):
+async def run_seeding() -> int:
     """Initialize the database with Day-1 exercises. Skips already existing slugs."""
     day1 = [
         {
@@ -175,5 +174,11 @@ async def seed_exercises(admin: User = Depends(get_current_admin)):
         if not existing:
             await Exercise(**ex_data).insert()
             seeded += 1
+    return seeded
 
-    return {"message": f"Seeded {seeded} exercises", "total_in_db": len(day1)}
+
+@router.post("/seed", status_code=201, summary="Seed Day-1 exercises (admin only)")
+async def seed_exercises(admin: User = Depends(get_current_admin)):
+    """Initialize the database with Day-1 exercises. Skips already existing slugs."""
+    seeded = await run_seeding()
+    return {"message": f"Seeded {seeded} exercises", "total_in_db": 5}

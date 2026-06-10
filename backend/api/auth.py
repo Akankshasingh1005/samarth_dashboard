@@ -1,8 +1,9 @@
 """Auth API routes."""
+import re
 from datetime import datetime
 from typing import Literal
 from fastapi import APIRouter, HTTPException, status, Depends
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 
 from models.user import User
 from models.patient import Patient
@@ -15,6 +16,11 @@ from services.auth_service import (
 
 router = APIRouter()
 
+# Password policy: min 8 chars, ≥1 uppercase, ≥1 lowercase, ≥1 digit, ≥1 special char
+_PASSWORD_RE = re.compile(
+    r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};\'\":,.<>?/\\|`~]).{8,}$'
+)
+
 
 class RegisterRequest(BaseModel):
     email: EmailStr
@@ -22,6 +28,17 @@ class RegisterRequest(BaseModel):
     first_name: str
     last_name: str
     role: Literal["patient", "therapist"] = "patient"
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, v: str) -> str:
+        if not _PASSWORD_RE.match(v):
+            raise ValueError(
+                "Password must be at least 8 characters and include at least one "
+                "uppercase letter, one lowercase letter, one digit, and one special "
+                "character (e.g. !@#$%^&*)."
+            )
+        return v
 
 
 class LoginRequest(BaseModel):
