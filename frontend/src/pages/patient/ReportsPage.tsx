@@ -94,7 +94,7 @@ export default function ReportsPage() {
 
   const handleDownload = (url: string) => {
     // Open in new tab or download directly
-    window.open(`http://localhost:8000${url}`, '_blank');
+    window.open(url, '_blank');
   };
 
   return (

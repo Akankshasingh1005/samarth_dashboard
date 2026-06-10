@@ -33,8 +33,7 @@ export default function LoginPage() {
       };
       setAuth(data, user);
       toast.success(`Welcome back, ${user.first_name}!`);
-      if (data.role === 'therapist') navigate('/therapist');
-      else if (data.role === 'admin') navigate('/admin');
+      if (data.role === 'therapist') navigate('/therapist/dashboard');
       else navigate('/dashboard');
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Login failed. Please check your credentials.');
@@ -60,7 +59,7 @@ export default function LoginPage() {
         <div className="relative z-10 flex flex-col justify-center px-16 text-white">
           {/* Logo */}
           <div className="flex items-center gap-3 mb-12">
-            <img src="/logo.png" alt="Samarth" className="w-12 h-12 rounded-full object-cover" />
+            <img src="/logo.jpeg" alt="Samarth" className="w-12 h-12 rounded-full object-cover" />
             <span className="text-3xl font-display font-bold">SAMARTH</span>
           </div>
 
@@ -89,7 +88,7 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
           {/* Mobile logo */}
           <div className="flex items-center gap-3 mb-8 lg:hidden">
-            <img src="/logo.png" alt="Samarth" className="w-10 h-10 rounded-full object-cover" />
+            <img src="/logo.jpeg" alt="Samarth" className="w-10 h-10 rounded-full object-cover" />
             <span className="text-2xl font-display font-bold text-[#0F172A]">Samarth</span>
           </div>
 

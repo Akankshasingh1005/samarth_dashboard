@@ -10,11 +10,6 @@ dist-ssr/
 __pycache__/
 *.py[cod]
 *$py.class
-.env
-.env.local
-.venv/
-venv/
-ENV/
 backend/uploads/*
 !backend/uploads/.gitkeep
 backend/static/exercises/*

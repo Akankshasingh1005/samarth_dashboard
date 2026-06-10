@@ -70,11 +70,11 @@ export default function PatientDashboard() {
       <nav className="bg-white border-b border-slate-200 sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="Samarth" className="w-9 h-9 rounded-full object-cover" />
+            <img src="/logo.jpeg" alt="Samarth" className="w-9 h-9 rounded-full object-cover" />
             <span className="text-xl font-display font-bold text-samarth-text">Samarth</span>
           </div>
           <div className="flex items-center gap-4">
-            <Link to="/analytics" className="text-slate-500 hover:text-brand transition-colors">
+            <Link to="/progress" className="text-slate-500 hover:text-brand transition-colors">
               <BarChart3 className="w-5 h-5" />
             </Link>
             <div className="relative">
@@ -206,7 +206,7 @@ export default function PatientDashboard() {
                   <span className="text-sm font-medium text-slate-700">New Session</span>
                   <ArrowRight className="w-4 h-4 text-slate-300 ml-auto" />
                 </Link>
-                <Link to="/analytics" className="flex items-center gap-3 p-3 rounded-xl hover:bg-brand-50 transition-colors group">
+                <Link to="/progress" className="flex items-center gap-3 p-3 rounded-xl hover:bg-brand-50 transition-colors group">
                   <div className="w-8 h-8 bg-brand-50 rounded-lg flex items-center justify-center group-hover:bg-brand/20">
                     <BarChart3 className="w-4 h-4 text-brand" />
                   </div>

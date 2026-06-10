@@ -105,7 +105,7 @@ export default function SessionSummaryPage() {
             <span className="font-medium">Back to Dashboard</span>
           </button>
           <div className="flex items-center gap-3">
-            <Link to={`/analytics`} className="btn-secondary text-sm px-4 py-2">
+            <Link to={`/progress`} className="btn-secondary text-sm px-4 py-2">
               <BarChart3 className="w-4 h-4" /> View Analytics
             </Link>
           </div>
@@ -269,7 +269,7 @@ export default function SessionSummaryPage() {
             <Activity className="w-4 h-4" />
             Start Another Session
           </Link>
-          <Link to="/analytics" className="btn-secondary">
+          <Link to="/progress" className="btn-secondary">
             <BarChart3 className="w-4 h-4" />
             View Full Analytics
           </Link>

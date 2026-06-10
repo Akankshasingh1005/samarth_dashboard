@@ -267,6 +267,17 @@ export default function CameraValidationPage() {
               )}
             </button>
 
+            <button
+              onClick={() => {
+                wsRef.current?.send(JSON.stringify({ type: 'stop' }));
+                navigate(`/session/live/${sessionId}/${exerciseId}`);
+              }}
+              className="w-full mt-2 py-3 rounded-2xl text-sm font-semibold text-slate-600 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-all duration-200 flex items-center justify-center gap-2"
+              id="bypass-validation-btn"
+            >
+              Demo Mode: Skip Positioning Check
+            </button>
+
             {allValid && (
               <p className="text-center text-sm text-green-600 font-medium animate-fade-in">
               All checks passed! You're ready to begin.

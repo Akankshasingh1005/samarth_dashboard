@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Dumbbell, BarChart3, FileText,
-  LogOut, User as UserIcon, Moon, Sun, Menu, X, Video
+  LogOut, User as UserIcon, Moon, Sun, Menu, X
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -34,7 +34,6 @@ export default function Layout() {
   const patientNavigation = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
     { name: 'Start Exercise', href: '/exercises', icon: Dumbbell },
-    { name: 'Upload Session', href: '/session/upload', icon: Video },
     { name: 'My Progress', href: '/progress', icon: BarChart3 },
     { name: 'Reports', href: '/reports', icon: FileText },
   ];
@@ -52,7 +51,7 @@ export default function Layout() {
       {/* Mobile Navbar */}
       <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 z-50">
         <div className="flex items-center gap-2">
-          <img src="/logo.png" alt="Samarth" className="w-7 h-7 rounded-full object-cover" />
+          <img src="/logo.jpeg" alt="Samarth" className="w-7 h-7 rounded-full object-cover" />
           <span className="font-display font-extrabold text-lg text-brand">
             Samarth
           </span>
@@ -81,7 +80,7 @@ export default function Layout() {
       >
         {/* Branding */}
         <div className="flex items-center gap-2.5 mb-8">
-          <img src="/logo.png" alt="Samarth" className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
+          <img src="/logo.jpeg" alt="Samarth" className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
           <div>
             <h1 className="font-display font-black text-xl text-brand">
               Samarth
