@@ -3,14 +3,14 @@ SAMARTH - HOW TO RUN GUIDE
 
 This project has TWO parts that must BOTH be running at the same time:
 
-   1. BACKEND  → The "brain" (Python) — runs on port 8000
-   2. FRONTEND → The "face" (Website) — runs on port 5173
+   1. BACKEND  → runs on port 8000
+   2. FRONTEND → runs on port 5173
 
 You need TWO separate terminal windows open simultaneously.
 
-===========================================================================
-  BEFORE YOU START — ONE-TIME SETUP (Do this ONLY the first time)
-===========================================================================
+
+BEFORE YOU START — ONE-TIME SETUP (Do this ONLY the first time)
+
 
 STEP 1 — Install Python (if not already installed)
 ----------------------------------------------------

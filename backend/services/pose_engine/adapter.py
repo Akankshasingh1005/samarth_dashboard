@@ -149,7 +149,7 @@ class PoseEngineAdapter:
             if joints is None:
                 return False
             jnt = joints.get(name)
-            return jnt is not None and jnt.get("visibility", 0) >= VISIBILITY_THRESHOLD
+            return jnt is not None
 
         lh = visible("LEFT_HIP")
         rh = visible("RIGHT_HIP")
@@ -159,21 +159,19 @@ class PoseEngineAdapter:
         ra = visible("RIGHT_ANKLE")
         full_body = all([lh, rh, lk, rk, la, ra])
 
-        # Check user inside exercise zone (person occupies center 60% of frame)
+        # Check user inside exercise zone (person occupies center of frame)
         inside_zone = False
-        if joints and full_body:
-            hip_y = joints.get("LEFT_HIP", {}).get("y_norm", 0)
-            ankle_y = joints.get("LEFT_ANKLE", {}).get("y_norm", 1)
+        if joints:
             hip_x = joints.get("LEFT_HIP", {}).get("x_norm", 0.5)
-            person_height_frac = abs(ankle_y - hip_y) * 2  # rough full-body estimate
-            in_x_zone = 0.15 < hip_x < 0.85
-            in_height = person_height_frac >= MIN_HEIGHT_FRACTION
-            inside_zone = in_x_zone and in_height
+            in_x_zone = 0.01 < hip_x < 0.99
+            inside_zone = in_x_zone
+        else:
+            inside_zone = True
 
         # Lighting check: mean luminance of grayscale frame
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         mean_brightness = float(np.mean(gray))
-        adequate_lighting = mean_brightness >= MIN_BRIGHTNESS
+        adequate_lighting = mean_brightness >= 10.0
 
         # Camera stability: compare current landmarks to previous frame
         camera_stable = True
@@ -186,14 +184,17 @@ class PoseEngineAdapter:
                     dx = abs(curr["x_norm"] - prev["x_norm"])
                     dy = abs(curr["y_norm"] - prev["y_norm"])
                     diffs.append(dx + dy)
-            if diffs and np.mean(diffs) > 0.08:
+            if diffs and np.mean(diffs) > 0.4:
                 camera_stable = False
 
         all_valid = all([lh, rh, lk, rk, la, ra, full_body, inside_zone, adequate_lighting, camera_stable])
 
         # Build guidance message
         guidance = ""
-        if not lh or not rh:
+        if joints is None or len(joints) == 0:
+            guidance = "No person detected — stand in front of camera"
+            all_valid = False
+        elif not lh or not rh:
             guidance = "Move back — hips not visible"
         elif not lk or not rk:
             guidance = "Move back — knees not visible"
@@ -241,13 +242,16 @@ class PoseEngineAdapter:
         try:
             os.makedirs(output_dir, exist_ok=True)
 
-            # Import PS1 components (available after sys.path injection at startup)
+            # Ensure PS1 path is in sys.path first!
+            if self._ps1_path not in sys.path:
+                sys.path.insert(0, self._ps1_path)
+
+            # Import PS1 components
             from modules.background_seg import BackgroundSegmenter
             from modules.video_enhance import VideoEnhancer
             from modules.pose_estimator import PoseEstimator
 
             # PS1 main pipeline function
-            sys.path.insert(0, self._ps1_path)
             import importlib.util
             spec = importlib.util.spec_from_file_location("ps1_main", os.path.join(self._ps1_path, "main.py"))
             ps1_main = importlib.util.module_from_spec(spec)
