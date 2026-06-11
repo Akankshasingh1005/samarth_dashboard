@@ -1,19 +1,25 @@
 import os
 import cv2
 import numpy as np
-import torch
+
+try:
+    import torch
+    from models.isnet import ISNetDIS
+    TORCH_AVAILABLE = True
+except ImportError:
+    TORCH_AVAILABLE = False
+
 from config import ISNET_WEIGHTS_PATH, ISNET_INPUT_SIZE
-from models.isnet import ISNetDIS
 
 class BackgroundSegmenter:
     """Handles background removal/segmentation using IS-Net architecture, falling back to MediaPipe pose segmentation if weights are missing"""
     def __init__(self, use_isnet=True, device="cpu"):
-        self.device = torch.device("cuda" if torch.cuda.is_available() and device == "cuda" else "cpu")
-        self.use_isnet = use_isnet
+        self.use_isnet = use_isnet and TORCH_AVAILABLE
         self.isnet_loaded = False
         self.net = None
 
         if self.use_isnet:
+            self.device = torch.device("cuda" if torch.cuda.is_available() and device == "cuda" else "cpu")
             # Check if weights file exists
             if os.path.exists(ISNET_WEIGHTS_PATH):
                 try:
@@ -34,6 +40,9 @@ class BackgroundSegmenter:
             else:
                 print(f"[BackgroundSegmenter] INFO: IS-Net weights not found at {ISNET_WEIGHTS_PATH}.")
                 print("[BackgroundSegmenter] The pipeline will fall back to MediaPipe's built-in segmentation or standard foreground isolation.")
+        else:
+            if not TORCH_AVAILABLE:
+                print("[BackgroundSegmenter] PyTorch not available. Skipping IS-Net initialization.")
 
     def segment_frame_isnet(self, frame):
         """Perform background subtraction on a single frame using IS-Net"""

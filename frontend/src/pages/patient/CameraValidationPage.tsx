@@ -50,7 +50,7 @@ export default function CameraValidationPage() {
   const connectCamera = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 640, height: 480, facingMode: 'user' },
+        video: { width: { ideal: 360 }, height: { ideal: 640 }, facingMode: 'user' },
         audio: false,
       });
       streamRef.current = stream;
@@ -78,9 +78,9 @@ export default function CameraValidationPage() {
         const canvas = canvasRef.current;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
-        canvas.width = 640;
-        canvas.height = 480;
-        ctx.drawImage(videoRef.current, 0, 0, 640, 480);
+        canvas.width = 360;
+        canvas.height = 640;
+        ctx.drawImage(videoRef.current, 0, 0, 360, 640);
         canvas.toBlob((blob) => {
           if (blob && ws.readyState === WebSocket.OPEN) {
             blob.arrayBuffer().then((buf) => ws.send(buf));
@@ -152,7 +152,7 @@ export default function CameraValidationPage() {
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
           {/* Camera Feed (left, 60%) */}
           <div className="lg:col-span-3 space-y-4">
-            <div className="relative bg-slate-900 rounded-2xl overflow-hidden aspect-video shadow-lg">
+            <div className="relative bg-slate-900 rounded-2xl overflow-hidden aspect-[9/16] max-w-sm mx-auto shadow-lg">
               {cameraError ? (
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-white gap-4">
                   <CameraOff className="w-16 h-16 text-red-400" />
@@ -164,7 +164,7 @@ export default function CameraValidationPage() {
                   <canvas ref={canvasRef} className="hidden" />
                   {/* Exercise zone overlay */}
                   <div className="absolute inset-0 pointer-events-none">
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2/5 h-4/5
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4/5 h-4/5
                       border-2 border-dashed rounded-2xl transition-colors duration-500
                       flex items-start justify-center pt-3"
                       style={{ borderColor: allValid ? '#22C55E' : '#F59E0B' }}>

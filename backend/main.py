@@ -34,12 +34,12 @@ async def lifespan(app: FastAPI):
         del sys.modules["config"]
         logger.info("🧹 Cleaned 'config' namespace from sys.modules to avoid collision with PS1 pipeline config.")
 
-    # Seed default exercises if database is empty
+    # Seed default exercises if database does not contain exactly 10 exercises
     from models.exercise import Exercise
     from api.exercises import run_seeding
     try:
-        if await Exercise.count() == 0:
-            logger.info("No exercises found in DB. Seeding default exercises...")
+        if await Exercise.count() != 10:
+            logger.info("Exercises count is not 10. Seeding default exercises...")
             seeded = await run_seeding()
             logger.info(f"✅ Seeded {seeded} default exercises.")
     except Exception as e:

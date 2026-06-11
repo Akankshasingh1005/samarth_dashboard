@@ -85,7 +85,7 @@ export default function LiveSessionPage() {
     const setup = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { width: 640, height: 480 }, audio: false,
+          video: { width: { ideal: 360 }, height: { ideal: 640 }, facingMode: 'user' }, audio: false,
         });
         streamRef.current = stream;
         if (videoRef.current) {
@@ -107,9 +107,9 @@ export default function LiveSessionPage() {
           const canvas = canvasRef.current;
           const ctx = canvas.getContext('2d');
           if (!ctx) return;
-          canvas.width = 640;
-          canvas.height = 480;
-          ctx.drawImage(videoRef.current, 0, 0, 640, 480);
+          canvas.width = 360;
+          canvas.height = 640;
+          ctx.drawImage(videoRef.current, 0, 0, 360, 640);
           canvas.toBlob((blob) => {
             if (blob && ws.readyState === WebSocket.OPEN) {
               blob.arrayBuffer().then((buf) => ws.send(buf));
@@ -263,30 +263,44 @@ export default function LiveSessionPage() {
       {/* Main content */}
       <div className="flex-1 flex flex-col lg:flex-row">
         {/* Camera Feed (full height left) */}
-        <div className="lg:w-3/5 relative bg-slate-900">
-          <video ref={videoRef} className="w-full h-full object-cover" muted playsInline style={{ minHeight: '60vh' }} />
-          <canvas ref={canvasRef as any} className="hidden" />
+        <div className="lg:w-3/5 bg-slate-900 flex flex-col items-center justify-center p-6 relative min-h-[60vh]">
+          <div className="aspect-[9/16] max-w-sm w-full rounded-2xl overflow-hidden shadow-2xl relative bg-slate-950">
+            <video ref={videoRef} className="w-full h-full object-cover" muted playsInline />
+            <canvas ref={canvasRef as any} className="hidden" />
 
-          {/* Confidence indicator */}
-          <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-sm px-3 py-1.5 rounded-xl">
-            <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${poseConfidence > 0.7 ? 'bg-green-400' : poseConfidence > 0.4 ? 'bg-amber-400' : 'bg-red-400'}`} />
-              <span className="text-white text-xs">Pose: {(poseConfidence * 100).toFixed(0)}%</span>
-            </div>
-          </div>
-
-          {/* Paused overlay */}
-          {paused && (
-            <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-              <div className="text-white text-center">
-                <Pause className="w-16 h-16 mx-auto mb-3 text-slate-300" />
-                <p className="text-xl font-bold">Session Paused</p>
-                <button onClick={() => setPaused(false)} className="mt-4 btn-primary px-8">
-                  Resume
-                </button>
+            {/* Confidence indicator */}
+            <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-sm px-3 py-1.5 rounded-xl z-10">
+              <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${poseConfidence > 0.7 ? 'bg-green-400' : poseConfidence > 0.4 ? 'bg-amber-400' : 'bg-red-400'}`} />
+                <span className="text-white text-xs font-semibold">Pose: {(poseConfidence * 100).toFixed(0)}%</span>
               </div>
             </div>
-          )}
+
+            {/* Floating End Session overlay button on top of camera video */}
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 w-full px-4 flex justify-center">
+              <button
+                onClick={handleEndSession}
+                disabled={ending}
+                className="bg-red-600 hover:bg-red-700 text-white font-bold px-6 py-3 rounded-xl shadow-lg flex items-center gap-2 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
+              >
+                <Square className="w-4 h-4 fill-white" />
+                {ending ? 'Ending...' : 'End Session'}
+              </button>
+            </div>
+
+            {/* Paused overlay */}
+            {paused && (
+              <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-20">
+                <div className="text-white text-center">
+                  <Pause className="w-16 h-16 mx-auto mb-3 text-slate-300" />
+                  <p className="text-xl font-bold">Session Paused</p>
+                  <button onClick={() => setPaused(false)} className="mt-4 btn-primary px-8">
+                    Resume
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Right Panel */}
