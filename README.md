@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="logo.png" alt="SAMARTH Logo" width="160" />
+<img src="logo.jpeg" alt="SAMARTH Logo" width="160" />
 
 # SAMARTH
 
