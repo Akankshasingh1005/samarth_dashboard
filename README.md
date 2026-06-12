@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="logo.jpeg" alt="SAMARTH Logo" width="160" />
+<img src="logo.png" alt="SAMARTH Logo" width="160" />
 
 # SAMARTH
 
@@ -556,7 +556,7 @@ dashboard/
 │
 ├── docker-compose.yml               # Backend + Frontend containers
 ├── .env                             # Root environment variables
-└── logo.jpeg                         # SAMARTH brand mark
+└── logo.png                         # SAMARTH brand mark
 ```
 
 ---

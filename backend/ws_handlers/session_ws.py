@@ -38,7 +38,7 @@ async def live_session_websocket(websocket: WebSocket, session_id: str, token: s
     logger.info(f"[WS Session] Client connected: session={session_id} user={token_data.user_id}")
 
     engine = get_pose_engine()
-    pose_estimator, kinematics = engine.create_session_context()
+    pose_estimator, kinematics, video_enhancer = engine.create_session_context()
 
     frame_index = 0
     rep_count = 0
@@ -75,7 +75,7 @@ async def live_session_websocket(websocket: WebSocket, session_id: str, token: s
             timestamp_ms = int(time.time() * 1000)
             result = engine.process_frame(
                 frame_bytes, frame_index, timestamp_ms,
-                pose_estimator, kinematics
+                pose_estimator, kinematics, video_enhancer
             )
 
             # Simple rep counting from knee flexion signal

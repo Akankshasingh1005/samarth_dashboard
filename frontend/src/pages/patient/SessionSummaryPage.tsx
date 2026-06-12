@@ -22,8 +22,9 @@ function ScoreMeter({ score }: { score: number }) {
   const pct = score * 100;
   const color = pct >= 80 ? '#22C55E' : pct >= 60 ? '#F59E0B' : '#EF4444';
   const label = pct >= 80 ? 'Excellent' : pct >= 60 ? 'Good' : 'Needs Work';
+  const circumference = 157;
   return (
-    <div className="relative flex flex-col items-center">
+    <div className="relative flex flex-col items-center animate-fade-in">
       <svg viewBox="0 0 120 70" className="w-48">
         <path d="M10,60 A50,50 0 0,1 110,60" fill="none" stroke="#E2E8F0" strokeWidth="10" strokeLinecap="round" />
         <path
@@ -32,7 +33,7 @@ function ScoreMeter({ score }: { score: number }) {
           stroke={color}
           strokeWidth="10"
           strokeLinecap="round"
-          strokeDasharray={`${(pct / 100) * 157} 157`}
+          strokeDasharray={`${(pct / 100) * circumference} ${circumference}`}
           style={{ transition: 'stroke-dasharray 1s ease' }}
         />
         <text x="60" y="58" textAnchor="middle" fill={color} fontSize="20" fontWeight="700">
@@ -96,7 +97,7 @@ export default function SessionSummaryPage() {
   );
 
   return (
-    <div className="min-h-screen bg-samarth-bg pb-12">
+    <div className="min-h-screen bg-samarth-bg pb-12 overflow-y-auto">
       {/* Header */}
       <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
@@ -105,7 +106,7 @@ export default function SessionSummaryPage() {
             <span className="font-medium">Back to Dashboard</span>
           </button>
           <div className="flex items-center gap-3">
-            <Link to={`/progress`} className="btn-secondary text-sm px-4 py-2">
+            <Link to={`/analytics`} className="btn-secondary text-sm px-4 py-2">
               <BarChart3 className="w-4 h-4" /> View Analytics
             </Link>
           </div>
@@ -114,7 +115,7 @@ export default function SessionSummaryPage() {
 
       <div className="max-w-6xl mx-auto px-6 pt-8 space-y-6">
         {/* Hero card */}
-        <div className="samarth-card p-8">
+        <div className="samarth-card p-8 animate-slide-up">
           <div className="flex flex-col lg:flex-row items-center gap-8">
             <div className="flex-shrink-0">
               <ScoreMeter score={session?.session_score ?? ps2Result?.overall_session_score ?? 0} />
@@ -138,7 +139,7 @@ export default function SessionSummaryPage() {
                   { label: 'Left ROM', value: `${(session?.avg_left_rom ?? 0).toFixed(1)}°`, Icon: Ruler },
                   { label: 'Symmetry', value: `${(session?.symmetry_score ?? 0).toFixed(1)}%`, Icon: Scale },
                 ].map((stat) => (
-                  <div key={stat.label} className="text-center p-4 bg-slate-50 rounded-xl">
+                  <div key={stat.label} className="text-center p-4 bg-brand-50 rounded-xl">
                     <div className="flex justify-center mb-1"><stat.Icon className="w-5 h-5 text-brand" /></div>
                     <div className="text-xl font-bold text-samarth-text">{stat.value}</div>
                     <div className="text-xs text-slate-500">{stat.label}</div>
@@ -148,7 +149,7 @@ export default function SessionSummaryPage() {
             </div>
 
             {/* Quality Trend */}
-            <div className="flex-shrink-0 text-center p-6 rounded-2xl bg-slate-50">
+            <div className="flex-shrink-0 text-center p-6 rounded-2xl bg-brand-50 border border-brand-100">
               <TrendIcon className={`w-10 h-10 mx-auto mb-2 ${trendColor}`} />
               <div className={`text-lg font-bold capitalize ${trendColor}`}>{trend}</div>
               <div className="text-xs text-slate-400 mt-1">Quality Trend</div>
@@ -159,7 +160,7 @@ export default function SessionSummaryPage() {
 
         {/* PS2 Error Analysis */}
         {ps2Result && (
-          <div className="samarth-card p-6">
+          <div className="samarth-card p-6 animate-slide-up">
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-display font-bold text-samarth-text text-lg">Movement Analysis</h2>
               <span className="badge-mock">PS2 {ps2Result.ps2_mode}</span>
@@ -216,60 +217,66 @@ export default function SessionSummaryPage() {
 
         {/* Per-Rep Results Table */}
         {ps2Result?.rep_results && ps2Result.rep_results.length > 0 && (
-          <div className="samarth-card p-6 overflow-x-auto">
+          <div className="samarth-card p-6 animate-slide-up">
             <h2 className="font-display font-bold text-samarth-text text-lg mb-4">Per-Rep Breakdown</h2>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-200">
-                  <th className="text-left py-2 px-3 text-slate-500 font-semibold">Rep</th>
-                  <th className="text-left py-2 px-3 text-slate-500 font-semibold">Score</th>
-                  <th className="text-left py-2 px-3 text-slate-500 font-semibold">Errors</th>
-                  <th className="text-left py-2 px-3 text-slate-500 font-semibold">Mode</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ps2Result.rep_results.map((rep) => {
-                  const errors = Object.entries(rep.error_flags).filter(([_, v]) => v === 1);
-                  const score = rep.session.session_score;
-                  return (
-                    <tr key={rep.rep_id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
-                      <td className="py-3 px-3 font-semibold text-samarth-text">#{rep.rep_id}</td>
-                      <td className="py-3 px-3">
-                        <span className={`font-bold ${score >= 0.8 ? 'text-green-600' : score >= 0.6 ? 'text-amber-600' : 'text-red-600'}`}>
-                          {(score * 100).toFixed(0)}%
-                        </span>
-                      </td>
-                      <td className="py-3 px-3">
-                        {errors.length === 0 ? (
-                          <span className="badge-success">Clean</span>
-                        ) : (
-                          <div className="flex flex-wrap gap-1">
-                            {errors.map(([k]) => (
-                              <span key={k} className="badge-error text-xs">
-                                {(() => { const I = ERROR_FLAG_CONFIG[k as keyof typeof ERROR_FLAG_CONFIG].icon; return <I className="w-3 h-3" />; })()}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </td>
-                      <td className="py-3 px-3 text-slate-400 text-xs">
-                        {rep.mode_command.mode_name} ({rep.mode_command.target_torque}Nm)
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <div className="overflow-x-auto max-h-[400px] overflow-y-auto">
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 bg-white">
+                  <tr className="border-b border-slate-200">
+                    <th className="text-left py-2 px-3 text-slate-500 font-semibold">Rep</th>
+                    <th className="text-left py-2 px-3 text-slate-500 font-semibold">Score</th>
+                    <th className="text-left py-2 px-3 text-slate-500 font-semibold">Errors</th>
+                    <th className="text-left py-2 px-3 text-slate-500 font-semibold">Mode</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ps2Result.rep_results.map((rep) => {
+                    const errors = Object.entries(rep.error_flags).filter(([_, v]) => v === 1);
+                    const score = rep.session.session_score;
+                    return (
+                      <tr key={rep.rep_id} className="border-b border-slate-50 hover:bg-brand-50/30 transition-colors">
+                        <td className="py-3 px-3 font-semibold text-samarth-text">#{rep.rep_id}</td>
+                        <td className="py-3 px-3">
+                          <span className={`font-bold ${score >= 0.8 ? 'text-green-600' : score >= 0.6 ? 'text-amber-600' : 'text-red-600'}`}>
+                            {(score * 100).toFixed(0)}%
+                          </span>
+                        </td>
+                        <td className="py-3 px-3">
+                          {errors.length === 0 ? (
+                            <span className="badge-success">Clean</span>
+                          ) : (
+                            <div className="flex flex-wrap gap-1">
+                              {errors.map(([k]) => {
+                                const cfg = ERROR_FLAG_CONFIG[k as keyof typeof ERROR_FLAG_CONFIG];
+                                const ErrIcon = cfg.icon;
+                                return (
+                                  <span key={k} className="badge-error text-xs" title={cfg.label}>
+                                    <ErrIcon className="w-3 h-3" />
+                                  </span>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </td>
+                        <td className="py-3 px-3 text-slate-400 text-xs">
+                          {rep.mode_command.mode_name} ({rep.mode_command.target_torque}Nm)
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
         {/* Action buttons */}
-        <div className="flex gap-4 justify-center flex-wrap">
+        <div className="flex gap-4 justify-center flex-wrap py-4">
           <Link to="/exercises" className="btn-primary">
             <Activity className="w-4 h-4" />
             Start Another Session
           </Link>
-          <Link to="/progress" className="btn-secondary">
+          <Link to="/analytics" className="btn-secondary">
             <BarChart3 className="w-4 h-4" />
             View Full Analytics
           </Link>

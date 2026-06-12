@@ -4,52 +4,55 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Samarth Design Tokens */
+/* Samarth Design Tokens — Teal/Navy palette */
 :root {
   --radius: 0.75rem;
 
-  /* Brand */
-  --color-brand: #2A5BC4;
-  --color-brand-light: #EBF0FB;
-  --color-accent: #229096;
-  --color-accent-light: #E6F5F6;
+  /* Brand — Teal from logo */
+  --color-brand: #0D7377;
+  --color-brand-light: #E6F5F5;
+  --color-accent: #14919B;
+  --color-accent-light: #E8F6F7;
+
+  /* Navy — Dark text/header from logo */
+  --color-navy: #1B3A4B;
 
   /* Backgrounds */
-  --color-bg: #F8FAFC;
+  --color-bg: #F0F7F7;
   --color-bg-card: #FFFFFF;
   --color-bg-muted: #E2E8F0;
 
   /* Text */
-  --color-text: #0F172A;
-  --color-text-muted: #64748B;
-  --color-text-subtle: #94A3B8;
+  --color-text: #1B3A4B;
+  --color-text-muted: #557289;
+  --color-text-subtle: #8DA1B0;
 
   /* Semantic */
   --color-success: #22C55E;
   --color-warning: #F59E0B;
   --color-error: #EF4444;
-  --color-info: #3B82F6;
+  --color-info: #14919B;
 
   /* Borders */
-  --color-border: #E2E8F0;
-  --color-border-focus: #2A5BC4;
+  --color-border: #C5E9EB;
+  --color-border-focus: #0D7377;
 
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.05);
-  --shadow-brand: 0 4px 14px 0 rgba(42, 91, 196, 0.25);
+  --shadow-brand: 0 4px 14px 0 rgba(13, 115, 119, 0.25);
 }
 
 /* Dark mode overrides */
 .dark {
-  --color-bg: #0A0F1E;
-  --color-bg-card: #0F172A;
-  --color-bg-muted: #1E293B;
-  --color-text: #F8FAFC;
-  --color-text-muted: #94A3B8;
-  --color-text-subtle: #64748B;
-  --color-border: #1E293B;
+  --color-bg: #0A1A1B;
+  --color-bg-card: #0F2426;
+  --color-bg-muted: #1B3A3D;
+  --color-text: #F0F7F7;
+  --color-text-muted: #8DA1B0;
+  --color-text-subtle: #557289;
+  --color-border: #1B3A3D;
 }
 
 /* Base Styles */
@@ -87,7 +90,7 @@ h1, h2, h3, h4, h5 {
            bg-brand text-white font-semibold text-sm
            hover:bg-brand-600 active:scale-95
            transition-all duration-150
-           shadow-[0_4px_14px_0_rgba(42,91,196,0.25)]
+           shadow-[0_4px_14px_0_rgba(13,115,119,0.25)]
            disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none;
   }
 
@@ -108,6 +111,12 @@ h1, h2, h3, h4, h5 {
     @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl
            bg-red-500 text-white font-semibold text-sm
            hover:bg-red-600 active:scale-95 transition-all duration-150;
+  }
+
+  .btn-warning {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl
+           bg-amber-500 text-white font-semibold text-sm
+           hover:bg-amber-600 active:scale-95 transition-all duration-150;
   }
 
   /* Status badges */
@@ -134,6 +143,11 @@ h1, h2, h3, h4, h5 {
   .badge-mock {
     @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium
            bg-slate-100 text-slate-500 border border-slate-200;
+  }
+
+  .badge-alert {
+    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold
+           bg-red-500 text-white border border-red-600 animate-alert-pulse;
   }
 
   /* Form inputs */
@@ -184,10 +198,32 @@ h1, h2, h3, h4, h5 {
     @apply relative overflow-hidden rounded-2xl border border-dashed border-slate-300
            bg-slate-50 p-6;
   }
+
+  /* Feedback cards */
+  .feedback-normal {
+    @apply p-3 rounded-xl border border-brand-100 bg-brand-50 text-brand-700
+           text-sm animate-slide-in-right;
+  }
+
+  .feedback-alert {
+    @apply p-3 rounded-xl border-2 border-red-400 bg-red-50 text-red-800
+           text-sm font-bold animate-alert-pulse;
+  }
+
+  .feedback-good {
+    @apply p-3 rounded-xl border border-green-200 bg-green-50 text-green-700
+           text-sm animate-slide-in-right;
+  }
+
+  /* Exercise card hover */
+  .exercise-card-hover {
+    @apply hover:border-brand/40 hover:shadow-lg hover:-translate-y-1
+           transition-all duration-300 cursor-pointer;
+  }
 }
 
 /* Custom scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 99px; }
-::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+::-webkit-scrollbar-thumb { background: #8DD3D7; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #14919B; }

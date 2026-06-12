@@ -29,21 +29,13 @@ async def lifespan(app: FastAPI):
         sys.path.insert(0, ps1_path)
         logger.info(f"✅ PS1 pipeline mounted at: {ps1_path}")
 
-    # Remove backend config from sys.modules to prevent name collision with PS1 config.py
-    if "config" in sys.modules:
-        del sys.modules["config"]
-        logger.info("🧹 Cleaned 'config' namespace from sys.modules to avoid collision with PS1 pipeline config.")
-
-    # Seed default exercises if database does not contain exactly 10 exercises
-    from models.exercise import Exercise
-    from api.exercises import run_seeding
+    # Auto-seed Day-1 exercises on startup
     try:
-        if await Exercise.count() != 10:
-            logger.info("Exercises count is not 10. Seeding default exercises...")
-            seeded = await run_seeding()
-            logger.info(f"✅ Seeded {seeded} default exercises.")
+        from api.exercises import seed_exercises
+        res = await seed_exercises(admin=None)
+        logger.info(f"✅ Auto-seeded Day-1 exercises: {res['message']}")
     except Exception as e:
-        logger.error(f"❌ Failed to auto-seed exercises on startup: {e}")
+        logger.warning(f"⚠️ Failed to auto-seed exercises: {e}")
 
     yield
 

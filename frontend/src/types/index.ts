@@ -35,6 +35,7 @@ export interface Exercise {
   target_rom_degrees: number;
   estimated_duration_seconds: number;
   gif_url?: string;
+  thumbnail_url?: string;
   demo_video_url?: string;
   audio_guide_url?: string;
   safety_instructions: string[];

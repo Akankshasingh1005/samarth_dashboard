@@ -1,292 +1,177 @@
-SAMARTH - HOW TO RUN GUIDE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                   SAMARTH - QUICK START GUIDE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SAMARTH is a physiotherapy rehabilitation platform with:
+  • Backend (Python/FastAPI) running on PORT 8000
+  • Frontend (React/TypeScript) running on PORT 5173
+
+You need BOTH running simultaneously in separate terminals.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                    ONE-TIME SETUP (First time only)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STEP 1: Install Python (3.10+)
+  1. Download from: https://www.python.org/downloads/
+  2. CHECK "Add Python to PATH" during installation
+  3. Verify: Open terminal → type "python --version"
+
+STEP 2: Install Node.js (LTS version)
+  1. Download from: https://nodejs.org/
+  2. Verify: Open terminal → type "node --version"
+
+STEP 3: Install Backend Dependencies
+  1. Open terminal in dashboard folder
+  2. Create virtual environment:
+     python -m venv .venv
+  3. Activate it:
+     .venv\Scripts\activate
+  4. Install packages:
+     pip install -r backend\requirements.txt
+  (This takes 5-10 minutes, be patient)
+
+STEP 4: Install Frontend Dependencies
+  1. Open terminal in frontend folder
+  2. Install packages:
+     npm install
+  (This takes 2-3 minutes)
 
 
-This project has TWO parts that must BOTH be running at the same time:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                 HOW TO RUN (Every time you want to start)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-   1. BACKEND  → runs on port 8000
-   2. FRONTEND → runs on port 5173
+IMPORTANT: Open TWO separate terminal windows!
 
-You need TWO separate terminal windows open simultaneously.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TERMINAL 1 - Start Backend
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+1. Navigate to backend folder:
+   cd "C:\Users\Akanksha Singh\OneDrive\Desktop\dashboard\backend"
 
-BEFORE YOU START — ONE-TIME SETUP (Do this ONLY the first time)
+2. Activate Python virtual environment:
+   ..\..\..\.venv\Scripts\activate
 
+3. Start backend server:
+   python -m uvicorn main:app --reload --env-file ".env"
 
-STEP 1 — Install Python (if not already installed)
-----------------------------------------------------
-   Download Python 3.10 or higher from: https://www.python.org/downloads/
-   During install, CHECK the box that says "Add Python to PATH"
-   Verify by opening a terminal and typing:
-      python --version
-   You should see something like: Python 3.13.7
+You should see: "Uvicorn running on http://0.0.0.0:8000"
 
-STEP 2 — Install Node.js (if not already installed)
-----------------------------------------------------
-   Download Node.js LTS from: https://nodejs.org/
-   Verify by opening a terminal and typing:
-      node --version
-   You should see something like: v20.x.x
+Leave this terminal OPEN.
 
-STEP 3 — Install Backend Python packages
------------------------------------------
-   Open a terminal (PowerShell or Command Prompt)
-   Navigate to the backend folder:
-      cd "C:\Users\Akanksha Singh\OneDrive\Desktop\dashboard"
-      (dashboard folder path)
-   
-   Create a virtual environment (a private Python sandbox):
-      python -m venv .venv
-   
-   Activate the virtual environment (run this EVERY TIME you open a new terminal):
-      .venv\Scripts\activate
-   
-   You should now see (.venv) at the start of your terminal line.
-   
-   Install all required Python packages:
-      pip install -r backend\requirements.txt
-   
-   NOTE: This may take 5–10 minutes the first time. Be patient.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TERMINAL 2 - Start Frontend
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-STEP 4 — Install Frontend Node packages
------------------------------------------
-   Navigate to the frontend folder:
-      cd "C:\Users\Akanksha Singh\OneDrive\Desktop\dashboard\frontend"
-   
-   Install all packages:
-      npm install
-   
-   NOTE: This may take 2–3 minutes the first time.
+1. Navigate to frontend folder:
+   cd "C:\Users\Akanksha Singh\OneDrive\Desktop\dashboard\frontend"
 
-===========================================================================
-  HOW TO RUN THE PROJECT (Do this EVERY TIME you want to start)
-===========================================================================
+2. Start frontend dev server:
+   npm run dev
 
-You need TWO terminal windows open at the same time.
+You should see: "Local: http://localhost:5173"
 
-----------------------------------------------------------------------
-  TERMINAL WINDOW 1 — Start the Backend (Python Server)
-----------------------------------------------------------------------
-   Open PowerShell or Command Prompt.
-   
-   Type the following commands ONE BY ONE, pressing Enter after each:
+Leave this terminal OPEN.
 
-      cd "C:\Users\Akanksha Singh\OneDrive\Desktop\dashboard\backend"
-      & "C:\Users\Akanksha Singh\OneDrive\Desktop\dashboard\.venv\Scripts\python.exe" -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload --env-file ".env"
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OPEN IN BROWSER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-   You should see output like:
-      INFO:  Uvicorn running on http://0.0.0.0:8000
-      INFO:  MongoDB connected and Beanie initialized
-      INFO:  PS1 pipeline mounted at: ...dashboard\pipeline
+Open your browser and go to:
+   http://localhost:5173
 
-   Backend is READY when you see: "MongoDB connected"
-   
-   KEEP THIS WINDOW OPEN. Do not close it.
-
-----------------------------------------------------------------------
-  TERMINAL WINDOW 2 — Start the Frontend (Website)
-----------------------------------------------------------------------
-   Open a SECOND PowerShell or Command Prompt window.
-   
-   Type the following commands ONE BY ONE:
-
-      cd "C:\Users\Akanksha Singh\OneDrive\Desktop\dashboard\frontend"
-      npm run dev
-
-   You should see output like:
-      VITE v5.x.x  ready in XXX ms
-      Local:   http://localhost:5173/
-
-   Frontend is READY when you see "Local: http://localhost:5173/"
-   
-   KEEP THIS WINDOW OPEN. Do not close it.
-
-----------------------------------------------------------------------
-  OPEN THE APP IN YOUR BROWSER
-----------------------------------------------------------------------
-   Open any browser (Chrome, Firefox, Edge) and go to:
-   
-      http://localhost:5173
-   
-   You will see the SAMARTH login page.
-   Register a new account or log in with an existing account.
-
-===========================================================================
-  WHAT TO DO AFTER EVERYTHING IS RUNNING
-===========================================================================
-
-   Website (Frontend):    http://localhost:5173
-   API Documentation:     http://localhost:8000/docs
-   Alternative API Docs:  http://localhost:8000/redoc
-   Health Check:          http://localhost:8000/health
-
-===========================================================================
-  HOW TO TRACK WHAT IS HAPPENING IN THE BACKEND (Monitoring)
-===========================================================================
-
-The backend prints detailed logs directly in Terminal Window 1.
-Here is what different log messages mean:
-
-   [INFO]  = Everything is working fine
-   [WARNING] = Something unusual happened but the server is still running
-   [ERROR] = Something went wrong — read the message for details
-
-----------------------------------------------------------------------
-  BACKEND LOG MONITORING COMMANDS
-----------------------------------------------------------------------
-
-  A) Watch ALL backend activity in real-time:
-     → Just look at Terminal Window 1 (the backend terminal).
-       Every request the website makes will appear there.
-
-  B) Check if backend is alive (Health Check):
-     Open a browser and go to:
-        http://localhost:8000/health
-     
-     You will see JSON like:
-        {"status": "ok", "app": "Samarth", "version": "1.0.0", ...}
-
-  C) See ALL available API endpoints (Interactive Docs):
-     Open a browser and go to:
-        http://localhost:8000/docs
-     
-     Here you can:
-     - See every route the backend has (login, register, sessions, etc.)
-     - Click "Try it out" on any endpoint to test it directly
-     - See the exact data structure sent and received
-
-  D) Check database activity — what's being saved/read:
-     The backend prints every MongoDB operation in Terminal Window 1.
-     Look for lines mentioning "seeded", "connected", "found", "created".
-
-  E) Check WebSocket (live session) activity:
-     When a patient starts a live exercise session, Terminal Window 1 shows:
-        WebSocket connected: /ws/session/{session_id}/...
-        Frame received, processing pose...
-        Rep detected! Count = X
-     
-     WebSocket connections are the "live pipe" between browser camera and AI.
-
-  F) Monitor API requests as they happen:
-     Every time a page loads or a button is clicked in the browser,
-     Terminal Window 1 shows lines like:
-        INFO: 127.0.0.1:XXXX - "GET /api/v1/sessions/ HTTP/1.1" 200 OK
-        INFO: 127.0.0.1:XXXX - "POST /api/v1/auth/login HTTP/1.1" 200 OK
-     
-     The number at the end (200, 401, 404, 500) is the status code:
-        200 = Success 
-        401 = Not logged in 
-        403 = No permission 
-        404 = Not found 
-        500 = Server error 
-
-  G) Track PS1 (Computer Vision) pipeline activity:
-     In Terminal Window 1, look for:
-        "PS1 pipeline mounted at: ..."     = Camera AI engine loaded
-        "PoseEstimator initialized"        = Pose detection ready
-        "Frame processed, angles: {...}"   = Live frame analyzed
-
-  H) Track PS2 (Exercise Analysis) status:
-     http://localhost:8000/api/v1/analysis/status
-     Shows whether the AI exercise analyzer is in mock or real mode.
-
-  I) Track PS3 (Sensor Hub) status:
-     http://localhost:8000/api/v1/sensor/status
-     Shows whether a physical wearable sensor is connected.
-
-  J) Save backend logs to a file (for sharing/debugging):
-     In Terminal Window 1, instead of the normal run command, use:
-     
-        & "C:\Users\Akanksha Singh\OneDrive\Desktop\dashboard\.venv\Scripts\python.exe" -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload --env-file ".env" 2>&1 | Tee-Object -FilePath "backend_log.txt"
-     
-     This saves ALL backend output to a file called "backend_log.txt"
-     inside the backend folder, while also showing it in the terminal.
-
-===========================================================================
-  HOW TO STOP THE PROJECT
-===========================================================================
-
-   In each terminal window, press: Ctrl + C
-   
-   This stops the server running in that window.
-   Close both terminal windows when done.
-
-===========================================================================
-  TROUBLESHOOTING — Common Problems
-===========================================================================
-
-PROBLEM: "uvicorn is not recognized" or "python is not recognized"
-SOLUTION: Make sure Python is installed and added to PATH.
-          Re-activate the virtual environment:
-             .venv\Scripts\activate
-
-PROBLEM: "npm is not recognized"
-SOLUTION: Install Node.js from https://nodejs.org/ and restart your terminal.
-
-PROBLEM: "MongoDB connection failed"
-SOLUTION: Check your internet connection. The database is hosted in the cloud.
-          Check that the MONGO_URI in backend\.env is correct.
-
-PROBLEM: Website shows blank page or errors
-SOLUTION: Make sure BOTH the backend AND frontend are running.
-          Check Terminal Window 1 for red error messages.
-
-PROBLEM: "Port 8000 is already in use"
-SOLUTION: Another program is using that port. Run:
-             netstat -ano | findstr "8000"
-          Then kill that process, or change the backend port to 8001.
-
-PROBLEM: Camera doesn't work in live session
-SOLUTION: Allow camera access in your browser when it asks.
-          Use Chrome or Edge for best WebSocket/camera support.
-
-===========================================================================
-  PROJECT FOLDER STRUCTURE (What each folder does)
-===========================================================================
-
-   dashboard/
-   ├── backend/          ← Python server (the "brain")
-   │   ├── main.py       ← Main server file — starts everything
-   │   ├── api/          ← All API routes (login, sessions, exercises...)
-   │   ├── models/       ← Database schemas (what data looks like)
-   │   ├── services/     ← Business logic (how data is processed)
-   │   ├── ws_handlers/  ← WebSocket handlers (live camera feed)
-   │   └── .env          ← Secret settings (database password, JWT key)
-   │
-   ├── frontend/         ← React website (what you see in browser)
-   │   ├── src/          ← All website code
-   │   │   ├── pages/    ← Each page of the website
-   │   │   ├── components/ ← Reusable parts (sidebar, navbar...)
-   │   │   └── api/      ← How frontend talks to backend
-   │   └── public/       ← Static files (logo.jpeg, icons...)
-   │
-   ├── pipeline/         ← PS1 AI Computer Vision engine (DO NOT EDIT)
-   ├── .venv/            ← Python virtual environment (auto-generated)
-   ├── logo.jpeg         ← SAMARTH logo
-   └── HOW_TO_RUN.txt    ← This file!
-
-===========================================================================
-  QUICK REFERENCE — Commands Cheat Sheet
-===========================================================================
-
-  Start Backend:
-    cd "C:\Users\Akanksha Singh\OneDrive\Desktop\dashboard\backend"
-    & "C:\Users\Akanksha Singh\OneDrive\Desktop\dashboard\.venv\Scripts\python.exe" -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload --env-file ".env"
-
-  Start Frontend:
-    cd "C:\Users\Akanksha Singh\OneDrive\Desktop\dashboard\frontend"
-    npm run dev
-
-  Check Backend Health:
-    Open browser → http://localhost:8000/health
-
-  View All API Endpoints:
-    Open browser → http://localhost:8000/docs
-
-  Open the App:
-    Open browser → http://localhost:5173
-
-  Save Backend Logs to File:
-    (Add)  2>&1 | Tee-Object -FilePath "backend_log.txt"
-    (to the end of the backend start command)
+You will see the SAMARTH login page.
+Register a new account or log in.
 
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                            USEFUL LINKS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+App:                   http://localhost:5173
+API Docs:              http://localhost:8000/docs
+API Health Check:      http://localhost:8000/health
+Alternative API Docs:  http://localhost:8000/redoc
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                           HOW TO STOP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+In each terminal window, press: Ctrl + C
+
+This will stop the servers. Close both terminals when done.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                        TROUBLESHOOTING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+❌ "uvicorn is not recognized" or "python is not recognized"
+   → Make sure the virtual environment is activated (.venv\Scripts\activate)
+
+❌ "npm is not recognized"
+   → Install Node.js from https://nodejs.org/
+
+❌ "MongoDB connection failed"
+   → Check your internet connection
+   → Check that backend/.env has the correct MONGO_URI
+
+❌ Website shows blank page
+   → Make sure BOTH backend AND frontend terminals show "running"
+   → Check Terminal 1 for red error messages
+
+❌ "Port 8000 is already in use"
+   → Another program is using that port
+   → Kill it or change port: --port 8001
+
+❌ Camera doesn't work in live session
+   → Allow camera access when browser asks
+   → Use Chrome or Edge for best support
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                       FOLDER STRUCTURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+dashboard/
+├── backend/              ← Python FastAPI server
+│   ├── main.py          ← Starts backend
+│   ├── api/             ← All routes (login, sessions, etc.)
+│   ├── models/          ← Database schemas
+│   ├── services/        ← Business logic
+│   └── .env             ← Settings (keep secret!)
+│
+├── frontend/            ← React website
+│   ├── src/             ← All code
+│   │   ├── pages/       ← Page components
+│   │   ├── components/  ← Reusable parts
+│   │   └── api/         ← Frontend API calls
+│   └── public/          ← Static files
+│
+└── pipeline/            ← AI Computer Vision (DO NOT EDIT)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                    QUICK REFERENCE - Commands
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Start Backend:
+  cd backend && ..\..\..\.venv\Scripts\activate && python -m uvicorn main:app --reload --env-file ".env"
+
+Start Frontend:
+  cd frontend && npm run dev
+
+Check Backend Health:
+  Open browser → http://localhost:8000/health
+
+View All API Endpoints:
+  Open browser → http://localhost:8000/docs
+
+Open the App:
+  Open browser → http://localhost:5173
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

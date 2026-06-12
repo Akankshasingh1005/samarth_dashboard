@@ -55,7 +55,6 @@ export default function App() {
           <Route path="session/live/:sessionId/:exerciseId" element={<LiveSessionPage />} />
           <Route path="session/summary/:sessionId" element={<SessionSummaryPage />} />
           <Route path="session/upload/:sessionId/:exerciseId" element={<UploadSessionPage />} />
-          <Route path="session/upload" element={<Navigate to="/exercises" replace />} />
           <Route path="progress" element={<AnalyticsPage />} />
           <Route path="reports" element={<ReportsPage />} />
 

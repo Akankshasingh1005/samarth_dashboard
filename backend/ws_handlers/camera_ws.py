@@ -31,7 +31,7 @@ async def camera_validation_websocket(websocket: WebSocket, token: str):
     logger.info(f"[WS Camera] Connected: user={token_data.user_id}")
 
     engine = get_pose_engine()
-    pose_estimator, kinematics = engine.create_session_context()
+    pose_estimator, kinematics, video_enhancer = engine.create_session_context()
     frame_index = 0
 
     try:
@@ -61,7 +61,7 @@ async def camera_validation_websocket(websocket: WebSocket, token: str):
             timestamp_ms = int(time.time() * 1000)
             result = engine.process_frame(
                 frame_bytes, frame_index, timestamp_ms,
-                pose_estimator, kinematics
+                pose_estimator, kinematics, video_enhancer
             )
 
             response = {

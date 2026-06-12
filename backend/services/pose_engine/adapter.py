@@ -27,12 +27,12 @@ from .schemas import (
     EngineStatus, FrameAngles, FrameValidation, LandmarkCoord, SymmetryResult, RepetitionResult
 )
 
-# Visibility threshold for considering a landmark "visible"
-VISIBILITY_THRESHOLD = 0.5
-# Lighting threshold: mean frame brightness
-MIN_BRIGHTNESS = 50
-# Zone occupancy: fraction of frame height the person must occupy
-MIN_HEIGHT_FRACTION = 0.35
+# Visibility threshold for considering a landmark "visible" — relaxed for webcam use
+VISIBILITY_THRESHOLD = 0.25
+# Lighting threshold: mean frame brightness — very lenient for indoor use
+MIN_BRIGHTNESS = 20
+# Zone occupancy: fraction of frame height the person must occupy — lenient
+MIN_HEIGHT_FRACTION = 0.15
 
 
 class PoseEngineAdapter:
@@ -90,6 +90,7 @@ class PoseEngineAdapter:
         timestamp_ms: int,
         pose_estimator,         # PS1 PoseEstimator instance (caller owns lifecycle)
         kinematics_extractor,   # PS1 KinematicsExtractor instance
+        video_enhancer=None,    # PS1 VideoEnhancer instance
     ) -> RealtimeFrameResult:
         """
         Process a single JPEG frame using PS1's PoseEstimator.
@@ -102,8 +103,16 @@ class PoseEngineAdapter:
             if frame is None:
                 return self._empty_frame_result(frame_index, timestamp_ms)
 
+            # Apply video enhancement if available
+            enhanced_frame = frame
+            if video_enhancer is not None:
+                try:
+                    enhanced_frame, _ = video_enhancer.enhance(frame)
+                except Exception as e:
+                    logger.warning(f"Failed to enhance frame: {e}")
+
             # Run PS1 inference
-            results, _seg_mask = pose_estimator.process_frame(frame)
+            results, _seg_mask = pose_estimator.process_frame(enhanced_frame)
             joints = pose_estimator.extract_joint_coordinates(results, frame.shape)
 
             # Extract angles
@@ -149,7 +158,7 @@ class PoseEngineAdapter:
             if joints is None:
                 return False
             jnt = joints.get(name)
-            return jnt is not None
+            return jnt is not None and jnt.get("visibility", 0) >= VISIBILITY_THRESHOLD
 
         lh = visible("LEFT_HIP")
         rh = visible("RIGHT_HIP")
@@ -159,19 +168,21 @@ class PoseEngineAdapter:
         ra = visible("RIGHT_ANKLE")
         full_body = all([lh, rh, lk, rk, la, ra])
 
-        # Check user inside exercise zone (person occupies center of frame)
+        # Check user inside exercise zone (person occupies center 60% of frame)
         inside_zone = False
-        if joints:
+        if joints and full_body:
+            hip_y = joints.get("LEFT_HIP", {}).get("y_norm", 0)
+            ankle_y = joints.get("LEFT_ANKLE", {}).get("y_norm", 1)
             hip_x = joints.get("LEFT_HIP", {}).get("x_norm", 0.5)
-            in_x_zone = 0.01 < hip_x < 0.99
-            inside_zone = in_x_zone
-        else:
-            inside_zone = True
+            person_height_frac = abs(ankle_y - hip_y) * 2  # rough full-body estimate
+            in_x_zone = 0.05 < hip_x < 0.95
+            in_height = person_height_frac >= MIN_HEIGHT_FRACTION
+            inside_zone = in_x_zone and in_height
 
         # Lighting check: mean luminance of grayscale frame
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         mean_brightness = float(np.mean(gray))
-        adequate_lighting = mean_brightness >= 10.0
+        adequate_lighting = mean_brightness >= MIN_BRIGHTNESS
 
         # Camera stability: compare current landmarks to previous frame
         camera_stable = True
@@ -184,17 +195,14 @@ class PoseEngineAdapter:
                     dx = abs(curr["x_norm"] - prev["x_norm"])
                     dy = abs(curr["y_norm"] - prev["y_norm"])
                     diffs.append(dx + dy)
-            if diffs and np.mean(diffs) > 0.4:
+            if diffs and np.mean(diffs) > 0.20:
                 camera_stable = False
 
         all_valid = all([lh, rh, lk, rk, la, ra, full_body, inside_zone, adequate_lighting, camera_stable])
 
         # Build guidance message
         guidance = ""
-        if joints is None or len(joints) == 0:
-            guidance = "No person detected — stand in front of camera"
-            all_valid = False
-        elif not lh or not rh:
+        if not lh or not rh:
             guidance = "Move back — hips not visible"
         elif not lk or not rk:
             guidance = "Move back — knees not visible"
@@ -242,16 +250,13 @@ class PoseEngineAdapter:
         try:
             os.makedirs(output_dir, exist_ok=True)
 
-            # Ensure PS1 path is in sys.path first!
-            if self._ps1_path not in sys.path:
-                sys.path.insert(0, self._ps1_path)
-
-            # Import PS1 components
+            # Import PS1 components (available after sys.path injection at startup)
             from modules.background_seg import BackgroundSegmenter
             from modules.video_enhance import VideoEnhancer
             from modules.pose_estimator import PoseEstimator
 
             # PS1 main pipeline function
+            sys.path.insert(0, self._ps1_path)
             import importlib.util
             spec = importlib.util.spec_from_file_location("ps1_main", os.path.join(self._ps1_path, "main.py"))
             ps1_main = importlib.util.module_from_spec(spec)
@@ -322,13 +327,15 @@ class PoseEngineAdapter:
 
     def create_session_context(self):
         """
-        Create a per-session pose estimator and kinematics extractor.
+        Create a per-session pose estimator, kinematics extractor, and video enhancer.
         Caller is responsible for cleanup via close_session_context().
         """
         from modules.pose_estimator import PoseEstimator
         from modules.kinematics import KinematicsExtractor
+        from modules.video_enhance import VideoEnhancer
         self._active_sessions += 1
-        return PoseEstimator(), KinematicsExtractor()
+        enhancer = VideoEnhancer(enabled=settings.PS1_ENHANCE, level=settings.PS1_ENHANCE_LEVEL)
+        return PoseEstimator(), KinematicsExtractor(), enhancer
 
     def close_session_context(self, pose_estimator):
         pose_estimator.close()

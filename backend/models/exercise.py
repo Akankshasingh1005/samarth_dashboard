@@ -17,6 +17,7 @@ class Exercise(Document):
     target_rom_degrees: float = 90.0
     estimated_duration_seconds: int = 120
     gif_url: Optional[str] = None
+    thumbnail_url: Optional[str] = None
     demo_video_url: Optional[str] = None
     audio_guide_url: Optional[str] = None
     safety_instructions: List[str] = Field(default_factory=list)

@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Activity, Clock, Target, Shield, ChevronRight,
-  ArrowLeft, Play, Upload, Loader2, Repeat, Ruler, ClipboardList, X as XIcon
+  ArrowLeft, Play, Upload, Loader2, Repeat, Ruler, ClipboardList, X as XIcon,
+  Dumbbell, Eye
 } from 'lucide-react';
 import { exerciseApi, sessionApi } from '@/api';
 import type { Exercise } from '@/types';
@@ -15,15 +16,31 @@ const CATEGORY_COLORS: Record<string, string> = {
   ankle: 'bg-amber-50 text-amber-700 border-amber-200',
 };
 
+const CATEGORY_ICONS: Record<string, React.ElementType> = {
+  full_leg: Dumbbell,
+  knee: Activity,
+  hip: Target,
+  ankle: Ruler,
+};
+
+const API_BASE = 'http://localhost:8000';
+
 function ExerciseCard({ exercise, onSelect }: { exercise: Exercise; onSelect: () => void }) {
+  const [imgError, setImgError] = useState(false);
+  const CategoryIcon = CATEGORY_ICONS[exercise.category] ?? Activity;
+  const gifSrc = exercise.gif_url ? `${API_BASE}${exercise.gif_url}` : null;
+  const thumbSrc = exercise.thumbnail_url ? `${API_BASE}${exercise.thumbnail_url}` : null;
+  const displaySrc = gifSrc || thumbSrc;
+
   return (
     <div
       onClick={onSelect}
-      className="samarth-card p-5 cursor-pointer hover:border-brand/40 hover:shadow-md transition-all duration-200 group"
+      className="samarth-card p-5 cursor-pointer exercise-card-hover group"
       id={`exercise-${exercise.slug}`}
     >
       <div className="flex items-start justify-between mb-4">
         <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${CATEGORY_COLORS[exercise.category] ?? 'bg-slate-50 text-slate-600 border-slate-200'}`}>
+          <CategoryIcon className="w-3 h-3" />
           {exercise.category.replace('_', ' ')}
         </div>
         <span className={`text-xs font-medium px-2 py-1 rounded-lg ${exercise.difficulty === 'beginner' ? 'bg-green-50 text-green-600' : exercise.difficulty === 'intermediate' ? 'bg-amber-50 text-amber-600' : 'bg-red-50 text-red-600'}`}>
@@ -31,16 +48,27 @@ function ExerciseCard({ exercise, onSelect }: { exercise: Exercise; onSelect: ()
         </span>
       </div>
 
-      {exercise.gif_url && (
-        <div className="w-full h-32 bg-slate-100 rounded-xl mb-4 overflow-hidden">
-          <img
-            src={exercise.gif_url}
-            alt={exercise.name}
-            className="w-full h-full object-cover"
-            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-          />
-        </div>
-      )}
+      {/* Exercise GIF/Image preview */}
+      <div className="w-full h-40 bg-gradient-to-br from-brand-50 to-accent-50 rounded-xl mb-4 overflow-hidden flex items-center justify-center relative group/img">
+        {displaySrc && !imgError ? (
+          <>
+            <img
+              src={displaySrc}
+              alt={exercise.name}
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              onError={() => setImgError(true)}
+            />
+            <div className="absolute inset-0 bg-black/0 group-hover/img:bg-black/20 transition-all flex items-center justify-center">
+              <Eye className="w-6 h-6 text-white opacity-0 group-hover/img:opacity-100 transition-opacity" />
+            </div>
+          </>
+        ) : (
+          <div className="flex flex-col items-center gap-2 text-brand/40">
+            <CategoryIcon className="w-12 h-12" />
+            <span className="text-xs font-medium">Demo Coming Soon</span>
+          </div>
+        )}
+      </div>
 
       <h3 className="font-display font-bold text-samarth-text text-lg mb-2 group-hover:text-brand transition-colors">
         {exercise.name}
@@ -53,7 +81,7 @@ function ExerciseCard({ exercise, onSelect }: { exercise: Exercise; onSelect: ()
         <span className="flex items-center gap-1"><Activity className="w-3 h-3" />{exercise.target_rom_degrees}° ROM</span>
       </div>
 
-      <button className="w-full btn-primary text-sm group-hover:shadow-brand">
+      <button className="w-full btn-primary text-sm group-hover:shadow-[0_4px_14px_0_rgba(13,115,119,0.3)]">
         <Play className="w-4 h-4" />
         Select Exercise
         <ChevronRight className="w-4 h-4" />
@@ -67,6 +95,8 @@ function ExerciseDetailModal({ exercise, onClose, onStart }: {
 }) {
   const [starting, setStarting] = useState<'live' | 'upload' | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [imgError, setImgError] = useState(false);
+  const gifSrc = exercise.gif_url ? `${API_BASE}${exercise.gif_url}` : null;
 
   const handleStart = async (mode: 'live' | 'upload') => {
     setStarting(mode);
@@ -89,6 +119,18 @@ function ExerciseDetailModal({ exercise, onClose, onStart }: {
         </div>
 
         <div className="p-6 space-y-6">
+          {/* Demo Animation (large) */}
+          {gifSrc && !imgError && (
+            <div className="w-full aspect-video bg-gradient-to-br from-brand-50 to-accent-50 rounded-2xl overflow-hidden shadow-inner">
+              <img
+                src={gifSrc}
+                alt={`${exercise.name} demonstration`}
+                className="w-full h-full object-contain"
+                onError={() => setImgError(true)}
+              />
+            </div>
+          )}
+
           <p className="text-slate-600 leading-relaxed">{exercise.description}</p>
 
           <div className="grid grid-cols-3 gap-4">
@@ -219,7 +261,7 @@ export default function ExerciseSelectionPage() {
             <span className="text-sm">Dashboard</span>
           </button>
           <h1 className="text-2xl font-display font-bold text-samarth-text">Select Exercise</h1>
-          <p className="text-slate-500 mt-1">Choose an exercise to begin your session</p>
+          <p className="text-slate-500 mt-1">Choose an exercise to begin your session. Knee Bend and Hip Abduction are recommended.</p>
         </div>
       </div>
 
@@ -227,7 +269,7 @@ export default function ExerciseSelectionPage() {
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="h-72 skeleton rounded-2xl" />
+              <div key={i} className="h-80 skeleton rounded-2xl" />
             ))}
           </div>
         ) : (

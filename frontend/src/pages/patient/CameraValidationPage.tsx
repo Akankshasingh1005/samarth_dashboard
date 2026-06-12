@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   CheckCircle2, XCircle, AlertCircle, CameraOff,
-  ChevronRight, Loader2, Info
+  ChevronRight, Loader2, Info, SkipForward
 } from 'lucide-react';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useAuthStore } from '@/stores/authStore';
@@ -22,6 +22,9 @@ const VALIDATION_LABELS: Record<keyof Omit<ValidationStatus, 'all_valid' | 'guid
   camera_stable: 'Camera Stable',
 };
 
+// Minimum checks to allow starting (relaxed)
+const MIN_CHECKS_TO_START = 4;
+
 export default function CameraValidationPage() {
   const { exerciseId, sessionId } = useParams<{ exerciseId: string; sessionId: string }>();
   const navigate = useNavigate();
@@ -37,6 +40,7 @@ export default function CameraValidationPage() {
   const [cameraError, setCameraError] = useState('');
   const [wsStatus, setWsStatus] = useState<'connecting' | 'connected' | 'error'>('connecting');
   const [frameCount, setFrameCount] = useState(0);
+  const [cameraLoading, setCameraLoading] = useState(true);
 
   const allValid = validationStatus?.all_valid ?? false;
   const checks = validationStatus
@@ -47,10 +51,15 @@ export default function CameraValidationPage() {
       }))
     : Object.entries(VALIDATION_LABELS).map(([key, label]) => ({ key, label, valid: false }));
 
+  const passedCount = checks.filter(c => c.valid).length;
+  const canStart = allValid || passedCount >= MIN_CHECKS_TO_START;
+
   const connectCamera = useCallback(async () => {
+    setCameraLoading(true);
     try {
+      // Try with ideal constraints first
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 360 }, height: { ideal: 640 }, facingMode: 'user' },
+        video: { width: { ideal: 640 }, height: { ideal: 480 } },
         audio: false,
       });
       streamRef.current = stream;
@@ -58,8 +67,21 @@ export default function CameraValidationPage() {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
       }
+      setCameraLoading(false);
     } catch (err) {
-      setCameraError('Camera access denied. Please allow camera access and reload.');
+      // Fallback: try with minimal constraints
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play();
+        }
+        setCameraLoading(false);
+      } catch {
+        setCameraError('Camera access denied. Please allow camera permissions and reload the page.');
+        setCameraLoading(false);
+      }
     }
   }, []);
 
@@ -78,15 +100,15 @@ export default function CameraValidationPage() {
         const canvas = canvasRef.current;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
-        canvas.width = 360;
-        canvas.height = 640;
-        ctx.drawImage(videoRef.current, 0, 0, 360, 640);
+        canvas.width = 640;
+        canvas.height = 480;
+        ctx.drawImage(videoRef.current, 0, 0, 640, 480);
         canvas.toBlob((blob) => {
           if (blob && ws.readyState === WebSocket.OPEN) {
             blob.arrayBuffer().then((buf) => ws.send(buf));
             setFrameCount((n) => n + 1);
           }
-        }, 'image/jpeg', 0.7);
+        }, 'image/jpeg', 0.6);
       }, 200); // 5fps
     };
 
@@ -122,10 +144,23 @@ export default function CameraValidationPage() {
   }, [connectCamera, connectWebSocket]);
 
   const handleStart = () => {
-    if (!allValid) {
-      toast.error('Please complete all positioning checks before starting.');
+    if (!canStart) {
+      toast.error('Please pass at least 4 positioning checks before starting.');
       return;
     }
+    if (!allValid) {
+      toast.warning('Some checks are not met. Session quality may be reduced.', {
+        duration: 3000,
+      });
+    }
+    wsRef.current?.send(JSON.stringify({ type: 'stop' }));
+    navigate(`/session/live/${sessionId}/${exerciseId}`);
+  };
+
+  const handleSkipValidation = () => {
+    toast.warning('Skipping validation. Camera positioning may affect analysis accuracy.', {
+      duration: 4000,
+    });
     wsRef.current?.send(JSON.stringify({ type: 'stop' }));
     navigate(`/session/live/${sessionId}/${exerciseId}`);
   };
@@ -152,35 +187,39 @@ export default function CameraValidationPage() {
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
           {/* Camera Feed (left, 60%) */}
           <div className="lg:col-span-3 space-y-4">
-            <div className="relative bg-slate-900 rounded-2xl overflow-hidden aspect-[9/16] max-w-sm mx-auto shadow-lg">
+            <div className="relative bg-slate-900 rounded-2xl overflow-hidden aspect-video shadow-lg">
               {cameraError ? (
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-white gap-4">
                   <CameraOff className="w-16 h-16 text-red-400" />
                   <p className="text-center px-8 text-red-300">{cameraError}</p>
+                  <button
+                    onClick={() => { setCameraError(''); connectCamera(); }}
+                    className="btn-primary mt-2"
+                  >
+                    Retry Camera
+                  </button>
                 </div>
               ) : (
                 <>
+                  {cameraLoading && (
+                    <div className="absolute inset-0 flex items-center justify-center z-10">
+                      <Loader2 className="w-10 h-10 text-brand animate-spin" />
+                    </div>
+                  )}
                   <video ref={videoRef} className="w-full h-full object-cover" muted playsInline />
                   <canvas ref={canvasRef} className="hidden" />
                   {/* Exercise zone overlay */}
                   <div className="absolute inset-0 pointer-events-none">
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4/5 h-4/5
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2/5 h-4/5
                       border-2 border-dashed rounded-2xl transition-colors duration-500
                       flex items-start justify-center pt-3"
-                      style={{ borderColor: allValid ? '#22C55E' : '#F59E0B' }}>
+                      style={{ borderColor: allValid ? '#22C55E' : canStart ? '#14919B' : '#F59E0B' }}>
                       <span className="text-xs font-semibold px-2 py-1 rounded-lg"
-                        style={{ backgroundColor: allValid ? 'rgba(34,197,94,0.15)' : 'rgba(245,158,11,0.15)',
-                                 color: allValid ? '#22C55E' : '#F59E0B' }}>
+                        style={{ backgroundColor: allValid ? 'rgba(34,197,94,0.15)' : canStart ? 'rgba(20,145,155,0.15)' : 'rgba(245,158,11,0.15)',
+                                 color: allValid ? '#22C55E' : canStart ? '#14919B' : '#F59E0B' }}>
                         Exercise Zone
                       </span>
                     </div>
-
-                    {/* Skeleton dots from landmark data */}
-                    {validationStatus?.left_knee_visible && (
-                      <div className="absolute" style={{ left: '40%', top: '60%' }}>
-                        <div className="w-3 h-3 bg-green-400 rounded-full opacity-80" />
-                      </div>
-                    )}
                   </div>
 
                   {/* Guidance message overlay */}
@@ -216,12 +255,12 @@ export default function CameraValidationPage() {
             <div className="samarth-card p-5">
               <div className="flex items-center justify-between mb-5">
                 <h2 className="font-display font-bold text-samarth-text">Validation Checklist</h2>
-                <span className={`badge-${allValid ? 'success' : 'warning'}`}>
-                  {checks.filter(c => c.valid).length}/{checks.length} passed
+                <span className={`${allValid ? 'badge-success' : canStart ? 'badge-brand' : 'badge-warning'}`}>
+                  {passedCount}/{checks.length} passed
                 </span>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2 max-h-[400px] overflow-y-auto">
                 {checks.map((check) => (
                   <div
                     key={check.key}
@@ -245,11 +284,13 @@ export default function CameraValidationPage() {
             {/* Start Button */}
             <button
               onClick={handleStart}
-              disabled={!allValid}
+              disabled={!canStart}
               id="start-session-btn"
               className={`w-full py-4 rounded-2xl text-base font-bold flex items-center justify-center gap-2 transition-all duration-300
                 ${allValid
-                  ? 'bg-brand text-white hover:-translate-y-0.5 active:translate-y-0'
+                  ? 'bg-brand text-white hover:-translate-y-0.5 active:translate-y-0 shadow-[0_4px_14px_0_rgba(13,115,119,0.3)]'
+                  : canStart
+                  ? 'bg-brand/80 text-white hover:-translate-y-0.5 active:translate-y-0'
                   : 'bg-slate-100 text-slate-400 cursor-not-allowed'
                 }`}
             >
@@ -259,23 +300,28 @@ export default function CameraValidationPage() {
                   Start Session
                   <ChevronRight className="w-5 h-5" />
                 </>
+              ) : canStart ? (
+                <>
+                  <AlertCircle className="w-5 h-5" />
+                  Start Anyway ({passedCount}/{checks.length} checks)
+                  <ChevronRight className="w-5 h-5" />
+                </>
               ) : (
                 <>
                   <AlertCircle className="w-5 h-5" />
-                  Complete All Checks First
+                  Pass {MIN_CHECKS_TO_START}+ Checks to Start
                 </>
               )}
             </button>
 
+            {/* Skip validation button */}
             <button
-              onClick={() => {
-                wsRef.current?.send(JSON.stringify({ type: 'stop' }));
-                navigate(`/session/live/${sessionId}/${exerciseId}`);
-              }}
-              className="w-full mt-2 py-3 rounded-2xl text-sm font-semibold text-slate-600 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-all duration-200 flex items-center justify-center gap-2"
-              id="bypass-validation-btn"
+              onClick={handleSkipValidation}
+              className="w-full py-2.5 rounded-xl text-sm font-medium text-slate-500 hover:text-slate-700 hover:bg-slate-100 flex items-center justify-center gap-2 transition-all"
+              id="skip-validation-btn"
             >
-              Demo Mode: Skip Positioning Check
+              <SkipForward className="w-4 h-4" />
+              Skip Validation & Start
             </button>
 
             {allValid && (

@@ -15,6 +15,11 @@ async def patient_analytics_summary(patient_id: str, current_user: User = Depend
     """Overall patient analytics summary."""
     db = get_db()
     pid = PydanticObjectId(patient_id)
+    from models.patient import Patient
+    patient = await Patient.get(pid) or await Patient.find_one(Patient.user_id == pid)
+    if not patient:
+        raise HTTPException(404, "Patient profile not found")
+    pid = patient.id
 
     pipeline = [
         {"$match": {"patient_id": pid}},
@@ -49,6 +54,11 @@ async def weekly_progress(patient_id: str, weeks: int = 8, current_user: User = 
     """Weekly ROM, symmetry, and session count trends."""
     db = get_db()
     pid = PydanticObjectId(patient_id)
+    from models.patient import Patient
+    patient = await Patient.get(pid) or await Patient.find_one(Patient.user_id == pid)
+    if not patient:
+        raise HTTPException(404, "Patient profile not found")
+    pid = patient.id
     since = datetime.utcnow() - timedelta(weeks=weeks)
 
     pipeline = [
@@ -90,6 +100,11 @@ async def rom_trends(patient_id: str, days: int = 30, current_user: User = Depen
     """Daily ROM trends for the last N days."""
     db = get_db()
     pid = PydanticObjectId(patient_id)
+    from models.patient import Patient
+    patient = await Patient.get(pid) or await Patient.find_one(Patient.user_id == pid)
+    if not patient:
+        raise HTTPException(404, "Patient profile not found")
+    pid = patient.id
     since = datetime.utcnow() - timedelta(days=days)
 
     pipeline = [
@@ -121,6 +136,11 @@ async def exercise_breakdown(patient_id: str, current_user: User = Depends(get_c
     """Sessions per exercise type."""
     db = get_db()
     pid = PydanticObjectId(patient_id)
+    from models.patient import Patient
+    patient = await Patient.get(pid) or await Patient.find_one(Patient.user_id == pid)
+    if not patient:
+        raise HTTPException(404, "Patient profile not found")
+    pid = patient.id
     pipeline = [
         {"$match": {"patient_id": pid, "status": "completed"}},
         {"$group": {
