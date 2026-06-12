@@ -10,7 +10,7 @@ export const authApi = {
   },
 
   register: async (data: { email: string; password: string; first_name: string; last_name: string; role?: string }) => {
-    const res = await apiClient.post<AuthTokens>('/auth/register', data);
+    const res = await apiClient.post<AuthTokens & { user_id: string; role: string; full_name: string }>('/auth/register', data);
     return res.data;
   },
 

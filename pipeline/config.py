@@ -34,17 +34,17 @@ ENHANCE_VIDEO = True
 ENHANCE_LEVEL = "auto"
 
 # Contrast: Michelson contrast below this value → apply CLAHE
-LOW_CONTRAST_THRESHOLD = 0.35
+LOW_CONTRAST_THRESHOLD = 0.20
 
 # Brightness: mean pixel luminance thresholds (0–255)
-LOW_BRIGHTNESS_THRESHOLD = 50    # Below → underexposed / low-light
-HIGH_BRIGHTNESS_THRESHOLD = 200  # Above → overexposed / glare
+LOW_BRIGHTNESS_THRESHOLD = 30    # Below → underexposed / low-light (relaxed)
+HIGH_BRIGHTNESS_THRESHOLD = 220  # Above → overexposed / glare (relaxed)
 
 # Sharpness: Laplacian variance below this → motion blur detected
-BLUR_SHARPNESS_THRESHOLD = 80.0
+BLUR_SHARPNESS_THRESHOLD = 40.0
 
 # Noise: estimated noise std-dev above this → noisy frame detected
-NOISE_THRESHOLD = 15.0
+NOISE_THRESHOLD = 25.0
 
 # CLAHE (Contrast Limited Adaptive Histogram Equalisation)
 CLAHE_CLIP_LIMIT = 2.0          # Higher → more aggressive contrast stretching

@@ -26,19 +26,25 @@ async def generate_report(
     pid = PydanticObjectId(patient_id)
     os.makedirs(settings.REPORTS_DIR, exist_ok=True)
 
+    # Resolve pid to Patient profile and User
+    patient = await Patient.get(pid)
+    if not patient:
+        patient = await Patient.find_one(Patient.user_id == pid)
+    if not patient:
+        raise HTTPException(404, "Patient profile not found")
+
     if session_ids:
         sids = [PydanticObjectId(s) for s in session_ids]
         sessions = await Session.find({"_id": {"$in": sids}}).to_list()
     else:
         sessions = await Session.find(
-            Session.patient_id == pid, Session.status == "completed"
+            Session.patient_id == patient.id, Session.status == "completed"
         ).sort(-Session.start_time).limit(10).to_list()
 
     if not sessions:
         raise HTTPException(404, "No completed sessions found for report")
 
-    patient = await Patient.find_one(Patient.user_id == pid)
-    user = await User.get(pid) if not patient else await User.get(patient.user_id)
+    user = await User.get(patient.user_id)
 
     # Build CSV report
     ts = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
@@ -62,7 +68,7 @@ async def generate_report(
             ])
 
     report = Report(
-        patient_id=pid,
+        patient_id=patient.id,
         session_ids=[s.id for s in sessions],
         type=report_type,
         csv_url=f"/reports/download/{csv_filename}",
@@ -82,7 +88,14 @@ async def download_report(filename: str, current_user: User = Depends(get_curren
 @router.get("/patient/{patient_id}")
 async def list_patient_reports(patient_id: str, current_user: User = Depends(get_current_user)):
     pid = PydanticObjectId(patient_id)
-    reports = await Report.find(Report.patient_id == pid).sort(-Report.generated_at).to_list()
+    
+    patient = await Patient.get(pid)
+    if not patient:
+        patient = await Patient.find_one(Patient.user_id == pid)
+    if not patient:
+        raise HTTPException(404, "Patient profile not found")
+
+    reports = await Report.find(Report.patient_id == patient.id).sort(-Report.generated_at).to_list()
     return [
         {
             "id": str(r.id),

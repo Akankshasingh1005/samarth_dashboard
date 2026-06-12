@@ -1,9 +1,9 @@
 """Auth API routes."""
-import re
 from datetime import datetime
 from typing import Literal
+import re
 from fastapi import APIRouter, HTTPException, status, Depends
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, EmailStr
 
 from models.user import User
 from models.patient import Patient
@@ -16,10 +16,33 @@ from services.auth_service import (
 
 router = APIRouter()
 
-# Password policy: min 8 chars, ≥1 uppercase, ≥1 lowercase, ≥1 digit, ≥1 special char
-_PASSWORD_RE = re.compile(
-    r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};\'\":,.<>?/\\|`~]).{8,}$'
-)
+
+def validate_password(password: str) -> None:
+    if len(password) < 8:
+        raise HTTPException(
+            status_code=400,
+            detail="Password must be at least 8 characters long"
+        )
+    if not re.search(r'[a-z]', password):
+        raise HTTPException(
+            status_code=400,
+            detail="Password must contain at least one lowercase letter"
+        )
+    if not re.search(r'[A-Z]', password):
+        raise HTTPException(
+            status_code=400,
+            detail="Password must contain at least one uppercase letter"
+        )
+    if not re.search(r'[0-9]', password):
+        raise HTTPException(
+            status_code=400,
+            detail="Password must contain at least one digit"
+        )
+    if not re.search(r'[!@#$%^&*()_+\-=\[\]{};:\'",.<>?/\\|`~]', password):
+        raise HTTPException(
+            status_code=400,
+            detail="Password must contain at least one special character (!@#$%^&*)"
+        )
 
 
 class RegisterRequest(BaseModel):
@@ -28,17 +51,6 @@ class RegisterRequest(BaseModel):
     first_name: str
     last_name: str
     role: Literal["patient", "therapist"] = "patient"
-
-    @field_validator("password")
-    @classmethod
-    def validate_password(cls, v: str) -> str:
-        if not _PASSWORD_RE.match(v):
-            raise ValueError(
-                "Password must be at least 8 characters and include at least one "
-                "uppercase letter, one lowercase letter, one digit, and one special "
-                "character (e.g. !@#$%^&*)."
-            )
-        return v
 
 
 class LoginRequest(BaseModel):
@@ -61,6 +73,8 @@ class RefreshRequest(BaseModel):
 
 @router.post("/register", response_model=TokenResponse, status_code=201)
 async def register(req: RegisterRequest):
+    validate_password(req.password)
+
     existing = await User.find_one(User.email == req.email)
     if existing:
         raise HTTPException(status_code=409, detail="Email already registered")

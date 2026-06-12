@@ -3,8 +3,8 @@ JWT Authentication Service for Samarth
 """
 from datetime import datetime, timedelta
 from typing import Optional
-import bcrypt
 from jose import JWTError, jwt
+from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel
@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from config import settings
 from models.user import User
 
+import bcrypt
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 
@@ -22,11 +23,19 @@ class TokenData(BaseModel):
 
 
 def hash_password(plain: str) -> str:
-    return bcrypt.hashpw(plain.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+    pwd_bytes = plain.encode('utf-8')
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(pwd_bytes, salt)
+    return hashed.decode('utf-8')
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
+    pwd_bytes = plain.encode('utf-8')
+    hashed_bytes = hashed.encode('utf-8')
+    try:
+        return bcrypt.checkpw(pwd_bytes, hashed_bytes)
+    except Exception:
+        return False
 
 
 def create_access_token(data: dict) -> str:
