@@ -261,7 +261,7 @@ export default function ExerciseSelectionPage() {
             <span className="text-sm">Dashboard</span>
           </button>
           <h1 className="text-2xl font-display font-bold text-samarth-text">Select Exercise</h1>
-          <p className="text-slate-500 mt-1">Choose an exercise to begin your session. Knee Bend and Hip Abduction are recommended.</p>
+          <p className="text-slate-500 mt-1">Choose an exercise to begin your session.</p>
         </div>
       </div>
 

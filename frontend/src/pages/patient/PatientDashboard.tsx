@@ -74,7 +74,7 @@ export default function PatientDashboard() {
             <span className="text-xl font-display font-bold text-samarth-text">Samarth</span>
           </div>
           <div className="flex items-center gap-4">
-            <Link to="/analytics" className="text-slate-500 hover:text-brand transition-colors">
+            <Link to="/progress" className="text-slate-500 hover:text-brand transition-colors">
               <BarChart3 className="w-5 h-5" />
             </Link>
             <div className="relative">
@@ -206,7 +206,7 @@ export default function PatientDashboard() {
                   <span className="text-sm font-medium text-slate-700">New Session</span>
                   <ArrowRight className="w-4 h-4 text-slate-300 ml-auto" />
                 </Link>
-                <Link to="/analytics" className="flex items-center gap-3 p-3 rounded-xl hover:bg-brand-50 transition-colors group">
+                <Link to="/progress" className="flex items-center gap-3 p-3 rounded-xl hover:bg-brand-50 transition-colors group">
                   <div className="w-8 h-8 bg-brand-50 rounded-lg flex items-center justify-center group-hover:bg-brand/20">
                     <BarChart3 className="w-4 h-4 text-brand" />
                   </div>

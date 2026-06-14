@@ -50,6 +50,7 @@ class AngleData(Document):
     symmetry: Dict[str, JointSymmetry] = Field(default_factory=dict)
     # PS2 per-rep analysis results (populated when PS2 is integrated)
     ps2_rep_results: List[Dict[str, Any]] = Field(default_factory=list)
+    ps2_mode: str = "mock"  # "mock" or "real"
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     class Settings:

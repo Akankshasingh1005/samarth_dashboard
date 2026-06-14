@@ -9,7 +9,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel
 
-from config import settings
+from backend_config import settings
 from models.user import User
 
 import bcrypt

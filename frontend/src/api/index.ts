@@ -73,6 +73,10 @@ export const sessionApi = {
     const res = await apiClient.get(`/sessions/${sessionId}/ps2-results`);
     return res.data;
   },
+  getProcessingStatus: async (sessionId: string) => {
+    const res = await apiClient.get(`/sessions/${sessionId}/processing-status`);
+    return res.data;
+  },
 };
 
 export const analyticsApi = {
@@ -129,6 +133,11 @@ export const reportApi = {
   },
   list: async (patientId: string) => {
     const res = await apiClient.get(`/reports/patient/${patientId}`);
+    return res.data;
+  },
+  download: async (url: string) => {
+    const cleanUrl = url.startsWith('/api/v1') ? url.substring('/api/v1'.length) : url;
+    const res = await apiClient.get(cleanUrl, { responseType: 'blob' });
     return res.data;
   },
 };

@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from loguru import logger
 
-from config import settings
+from backend_config import settings
 from database import connect_db, close_db
 from api import auth, patients, therapists, exercises, sessions, pose, analysis, sensors, reports, analytics, notifications
 from ws_handlers import session_ws_router, camera_ws_router
@@ -68,6 +68,10 @@ app.add_middleware(
 # ── Static files (exercise GIFs, demo assets) ────────────────────────────────
 os.makedirs("static/exercises", exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# ── Upload files (annotated videos served to frontend) ────────────────────────
+os.makedirs(settings.LOCAL_UPLOAD_DIR, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=settings.LOCAL_UPLOAD_DIR), name="uploads")
 
 # ── REST API Routers ──────────────────────────────────────────────────────────
 PREFIX = "/api/v1"

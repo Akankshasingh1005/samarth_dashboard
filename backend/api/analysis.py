@@ -72,7 +72,7 @@ async def get_session_analysis(session_id: str, current_user: User = Depends(get
 
 @router.get("/status")
 async def ps2_status(current_user: User = Depends(get_current_user)):
-    from config import settings
+    from backend_config import settings
     return {
         "mode": "real" if settings.PS2_USE_REAL_MODEL else "mock",
         "model_path": settings.PS2_MODEL_PATH or None,

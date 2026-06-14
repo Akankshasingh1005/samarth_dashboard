@@ -78,16 +78,28 @@ class Settings(BaseSettings):
     @field_validator("PS2_USE_REAL_MODEL", mode="before")
     @classmethod
     def auto_detect_ps2(cls, v, info):
-        """Auto-enable real PS2 model if model path is set."""
+        """Auto-enable real PS2 model if model path is set and file exists."""
         model_path = os.getenv("PS2_MODEL_PATH", "")
-        if model_path and os.path.exists(model_path):
-            return True
+        if model_path:
+            # Resolve relative paths from backend directory
+            base = Path(__file__).parent
+            resolved = (base / model_path).resolve()
+            if resolved.exists():
+                return True
         return v
 
     def get_ps1_path(self) -> Path:
         """Return absolute Path to the PS1 pipeline directory."""
         base = Path(__file__).parent
         return (base / self.PS1_PIPELINE_PATH).resolve()
+
+    def get_ps2_model_path(self) -> str:
+        """Return resolved absolute path to the PS2 model weights file."""
+        if not self.PS2_MODEL_PATH:
+            return ""
+        base = Path(__file__).parent
+        resolved = (base / self.PS2_MODEL_PATH).resolve()
+        return str(resolved)
 
     def ensure_dirs(self):
         """Create necessary local directories."""

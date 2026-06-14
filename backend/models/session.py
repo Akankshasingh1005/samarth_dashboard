@@ -29,6 +29,12 @@ class Session(Document):
     quality_score: Optional[float] = None
     quality_trend: Optional[str] = None  # improving | stable | declining
     session_score: Optional[float] = None
+    # Processing progress tracking
+    processing_step: Optional[str] = None  # e.g. "enhancing", "pose_detection", "kinematics", "analysis"
+    processing_progress: int = 0  # 0-100 percentage
+    # PS3 sensor integration (future hardware module)
+    ps3_connected: bool = False
+    ps3_sensor_data_path: Optional[str] = None
     # Metadata
     notes: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)

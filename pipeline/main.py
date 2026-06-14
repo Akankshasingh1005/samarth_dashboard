@@ -207,6 +207,7 @@ def run_pipeline_on_video(video_path, output_subfolder_dir, bg_handler, pose_est
         "reps": reps,
         "summary": summary_metrics,
         "fps": fps,
+        "landmarks_detected_count": landmarks_detected_count,
         "avg_left_rom": float(np.mean([r['rom'] for r in reps]) if len(reps) > 0 else 0.0),
         "avg_right_rom": float(np.mean([r['rom'] for r in reps]) * 0.98 if len(reps) > 0 else 0.0),
         "quality_summary": quality_summary,

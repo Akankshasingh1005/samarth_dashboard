@@ -4,7 +4,8 @@ import {
   Trophy, ArrowLeft, TrendingUp, TrendingDown, Minus,
   Target, Activity, BarChart3, ChevronRight,
   CheckCircle2, XCircle, Repeat, Clock, Ruler, Scale,
-  Maximize2, Zap, Hourglass, AlertTriangle, GitCompare, UserCircle
+  Maximize2, Zap, Hourglass, AlertTriangle, GitCompare, UserCircle,
+  MessageCircle, Film, ThumbsUp, AlertCircle
 } from 'lucide-react';
 import { sessionApi } from '@/api';
 import type { Session, PS2SessionResult } from '@/types';
@@ -106,7 +107,7 @@ export default function SessionSummaryPage() {
             <span className="font-medium">Back to Dashboard</span>
           </button>
           <div className="flex items-center gap-3">
-            <Link to={`/analytics`} className="btn-secondary text-sm px-4 py-2">
+            <Link to={`/progress`} className="btn-secondary text-sm px-4 py-2">
               <BarChart3 className="w-4 h-4" /> View Analytics
             </Link>
           </div>
@@ -153,17 +154,150 @@ export default function SessionSummaryPage() {
               <TrendIcon className={`w-10 h-10 mx-auto mb-2 ${trendColor}`} />
               <div className={`text-lg font-bold capitalize ${trendColor}`}>{trend}</div>
               <div className="text-xs text-slate-400 mt-1">Quality Trend</div>
-              <span className="mt-2 badge-mock">PS2 Mock</span>
+              <span className={`mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${ps2Result?.ps2_mode === 'real' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
+                {ps2Result?.ps2_mode === 'real' ? '🧠 AI Model' : '🔮 Mock Data'}
+              </span>
             </div>
           </div>
         </div>
+
+        {/* Human-Readable Rehabilitation Feedback */}
+        {ps2Result && (
+          <div className="samarth-card p-6 animate-slide-up">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-10 h-10 bg-brand-50 rounded-xl flex items-center justify-center">
+                <MessageCircle className="w-5 h-5 text-brand" />
+              </div>
+              <div>
+                <h2 className="font-display font-bold text-samarth-text text-lg">Your Rehabilitation Report</h2>
+                <p className="text-sm text-slate-500">AI-powered feedback on your exercise performance</p>
+              </div>
+            </div>
+
+            {(() => {
+              const score = ps2Result.overall_session_score * 100;
+              const totalReps = ps2Result.total_reps_analyzed;
+              const errors = ps2Result.rep_results.reduce((acc, rep) => {
+                Object.entries(rep.error_flags).forEach(([key, val]) => {
+                  if (val === 1) acc[key] = (acc[key] ?? 0) + 1;
+                });
+                return acc;
+              }, {} as Record<string, number>);
+              const issueKeys = Object.entries(errors).filter(([_, count]) => count / totalReps > 0.3).map(([k]) => k);
+              const cleanKeys = Object.keys(ERROR_FLAG_CONFIG).filter(k => !issueKeys.includes(k));
+
+              const qualityLabel = score >= 80 ? 'Excellent' : score >= 60 ? 'Good' : score >= 40 ? 'Fair' : 'Needs Improvement';
+              const qualityColor = score >= 80 ? 'text-green-700 bg-green-50 border-green-200' : score >= 60 ? 'text-amber-700 bg-amber-50 border-amber-200' : 'text-red-700 bg-red-50 border-red-200';
+
+              const issueExplanations: Record<string, string> = {
+                insufficient_ROM: 'Your joints did not reach the full target range of motion during some repetitions. Try to extend through the complete movement arc while maintaining control.',
+                too_fast: 'Some movements were performed too quickly, which can reduce muscle engagement and increase injury risk. Focus on slow, controlled movements — count to 3 on each phase.',
+                too_slow: 'Your movement tempo was slower than recommended. While controlled movement is good, aim for a steady rhythm to maintain muscle activation throughout the set.',
+                knee_valgus: 'Your knees collapsed inward during some reps (valgus). Focus on pushing your knees outward in line with your toes. Strengthening your hip abductors can help.',
+                asymmetric: 'There was a noticeable difference between your left and right sides. Try to distribute weight evenly and perform the movement symmetrically.',
+                trunk_comp: 'Excessive trunk lean or tilt was detected. Keep your core engaged and your torso upright throughout the exercise to prevent compensation patterns.',
+              };
+
+              const strengthMessages: string[] = [];
+              if (cleanKeys.includes('knee_valgus')) strengthMessages.push('Good knee alignment — your knees tracked well over your toes.');
+              if (cleanKeys.includes('asymmetric')) strengthMessages.push('Excellent bilateral symmetry — both sides are working evenly.');
+              if (cleanKeys.includes('insufficient_ROM')) strengthMessages.push('Great range of motion — you\'re reaching the target movement arc.');
+              if (cleanKeys.includes('trunk_comp')) strengthMessages.push('Stable trunk posture — your core engagement is solid.');
+              if (cleanKeys.includes('too_fast') && cleanKeys.includes('too_slow')) strengthMessages.push('Good movement tempo — your pacing is within the recommended range.');
+              if (strengthMessages.length === 0) strengthMessages.push('You completed all repetitions — keep practicing for improvement!');
+
+              return (
+                <div className="space-y-5">
+                  {/* Quality Badge */}
+                  <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl border font-semibold text-sm ${qualityColor}`}>
+                    {score >= 60 ? <ThumbsUp className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+                    Exercise Quality: {qualityLabel} ({score.toFixed(0)}%)
+                  </div>
+
+                  {/* Strengths */}
+                  {strengthMessages.length > 0 && (
+                    <div className="bg-green-50 border border-green-100 rounded-xl p-4">
+                      <h3 className="font-semibold text-green-800 mb-2 flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4" />
+                        What You Did Well
+                      </h3>
+                      <ul className="space-y-1.5">
+                        {strengthMessages.map((msg, i) => (
+                          <li key={i} className="text-sm text-green-700 flex items-start gap-2">
+                            <span className="mt-0.5 text-green-500">✓</span>{msg}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Issues Detected */}
+                  {issueKeys.length > 0 && (
+                    <div className="bg-amber-50 border border-amber-100 rounded-xl p-4">
+                      <h3 className="font-semibold text-amber-800 mb-2 flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4" />
+                        Areas for Improvement
+                      </h3>
+                      <div className="space-y-3">
+                        {issueKeys.map((key) => {
+                          const config = ERROR_FLAG_CONFIG[key as keyof typeof ERROR_FLAG_CONFIG];
+                          const count = errors[key];
+                          return (
+                            <div key={key} className="text-sm">
+                              <div className="font-semibold text-amber-900 mb-0.5">
+                                {config?.label} — detected in {count} of {totalReps} reps
+                              </div>
+                              <p className="text-amber-700 leading-relaxed">
+                                {issueExplanations[key] ?? config?.desc ?? 'An issue was detected during your exercise.'}
+                              </p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Summary narrative */}
+                  <p className="text-sm text-slate-600 leading-relaxed">
+                    {issueKeys.length === 0
+                      ? `Great job! You completed ${totalReps} repetitions with excellent form. Your movement quality is consistent and your technique is solid. Keep up the good work!`
+                      : `You completed ${totalReps} repetitions. Focus on the areas noted above in your next session. Small improvements in technique will significantly enhance your rehabilitation progress.`
+                    }
+                  </p>
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
+        {/* Annotated Video */}
+        {session?.video_url && (
+          <div className="samarth-card p-6 animate-slide-up">
+            <div className="flex items-center gap-3 mb-4">
+              <Film className="w-5 h-5 text-brand" />
+              <h2 className="font-display font-bold text-samarth-text text-lg">Annotated Exercise Video</h2>
+            </div>
+            <div className="bg-slate-900 rounded-2xl overflow-hidden">
+              <video
+                src={session.video_url}
+                controls
+                className="w-full"
+                style={{ maxHeight: '500px' }}
+                playsInline
+              />
+            </div>
+            <p className="text-xs text-slate-400 mt-2">Video with AI pose overlay showing detected skeleton, joint angles, and repetition markers.</p>
+          </div>
+        )}
 
         {/* PS2 Error Analysis */}
         {ps2Result && (
           <div className="samarth-card p-6 animate-slide-up">
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-display font-bold text-samarth-text text-lg">Movement Analysis</h2>
-              <span className="badge-mock">PS2 {ps2Result.ps2_mode}</span>
+              <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${ps2Result.ps2_mode === 'real' ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-slate-100 text-slate-500 border border-slate-200'}`}>
+                {ps2Result.ps2_mode === 'real' ? '🧠 RehabNet AI Analysis' : '🔮 Simulated Analysis'}
+              </span>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
@@ -276,7 +410,7 @@ export default function SessionSummaryPage() {
             <Activity className="w-4 h-4" />
             Start Another Session
           </Link>
-          <Link to="/analytics" className="btn-secondary">
+          <Link to="/progress" className="btn-secondary">
             <BarChart3 className="w-4 h-4" />
             View Full Analytics
           </Link>

@@ -86,8 +86,10 @@ class BatchProcessingResult(BaseModel):
     quality_summary: Dict
     csv_timeseries_path: Optional[str] = None
     csv_summary_path: Optional[str] = None
+    annotated_video_path: Optional[str] = None
     status: Literal["success", "partial", "failed"] = "success"
     error: Optional[str] = None
+
 
 
 class EngineStatus(BaseModel):

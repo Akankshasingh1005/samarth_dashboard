@@ -1,7 +1,7 @@
 """Reports API — PDF generation with WeasyPrint + CSV export."""
 import os
 import csv
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
 from beanie import PydanticObjectId
@@ -11,7 +11,7 @@ from models.angle_data import AngleData
 from models.user import User
 from models.patient import Patient
 from services.auth_service import get_current_user
-from config import settings
+from backend_config import settings
 
 router = APIRouter()
 
@@ -55,10 +55,16 @@ async def generate_report(
         writer = csv.writer(f)
         writer.writerow(["Session ID", "Exercise", "Date", "Duration(s)", "Reps", "Avg Left ROM", "Avg Right ROM", "Symmetry %", "Session Score"])
         for s in sessions:
+            if s.start_time:
+                local_time = s.start_time.replace(tzinfo=timezone.utc).astimezone()
+                date_str = local_time.strftime("%Y-%m-%d %H:%M")
+            else:
+                date_str = "N/A"
+                
             writer.writerow([
                 str(s.id),
                 str(s.exercise_id),
-                s.start_time.strftime("%Y-%m-%d %H:%M"),
+                date_str,
                 round(s.duration_seconds or 0, 1),
                 s.total_reps,
                 round(s.avg_left_rom, 1),

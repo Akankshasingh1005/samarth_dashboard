@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="logo.png" alt="SAMARTH Logo" width="160" />
+<img src="logo.jpeg" alt="SAMARTH Logo" width="160" />
 
 # SAMARTH
 
@@ -8,7 +8,7 @@
 
 **An AI-guided physiotherapy rehabilitation platform for real-time biomechanical analysis, kinematic monitoring, and clinical outcome tracking**
 
-*Developed at IIT (BHU) Varanasi — Physiotherapy · Machine Learning · Impact*
+*Developed at IIT (BHU) Varanasi - Physiotherapy · Machine Learning · Impact*
 
 ---
 
@@ -87,7 +87,7 @@ The platform is built around the team's **PS1 KinemaFlow** computer vision pipel
 └─────────────────────┼───────────────────────────────────────────────┘
                       ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│                   PS1 — KinemaFlow Pipeline                         │
+│                   PS1 - KinemaFlow Pipeline                         │
 │                                                                     │
 │  BackgroundSegmenter  ·  VideoEnhancer  ·  PoseEstimator (MP)      │
 │  KinematicsExtractor  ·  FeatureExtractor  ·  FilterUtils          │
@@ -163,15 +163,19 @@ The frontend renders:
 - **Live angle gauges** for 6 joints (degrees)
 - **Rep counter** with peak-detection logic
 - **Pose confidence** indicator (mean landmark visibility)
-- **Error flags** (PS2 stubs: knee valgus, too fast/slow, insufficient ROM, asymmetry, trunk compensation)
+- **RehabNet PS2 feedback** when `PS2_MODEL_PATH` is configured, with fallback mock feedback if the model is unavailable
 
 ### 3. Batch Video Upload
 
-Alternatively, patients can upload a pre-recorded `.mp4` video. The backend calls `PS1.run_pipeline_on_video()` synchronously, which returns:
+Alternatively, patients can upload a pre-recorded video. The backend validates the file, extracts readable frame metadata, then runs PS1 batch processing with video enhancement, background handling, pose estimation, kinematics, repetition detection, and annotated video generation. The PS1 output is passed to RehabNet PS2 for movement-quality analysis.
+
+The upload flow returns:
 - Per-frame angle time-series CSV
 - Exercise summary CSV
 - Rep segmentation with symmetry metrics
 - Bilateral ROM averages
+- PS2 error flags, confidence values, quality score, trend, and recommendations
+- Annotated video URL when overlay generation succeeds
 
 Results are stored in MongoDB and visualised on the Analytics dashboard.
 
@@ -196,7 +200,7 @@ Therapists view per-patient dashboards showing:
 | **FastAPI** | 0.111 | Async REST + WebSocket framework (ASGI) |
 | **Uvicorn** | 0.29 | ASGI server with WebSocket support |
 | **Motor** | 3.7.1 | Async MongoDB driver (non-blocking I/O) |
-| **Beanie** | 1.26 | MongoDB ODM — document models with Pydantic V2 |
+| **Beanie** | 1.26 | MongoDB ODM - document models with Pydantic V2 |
 | **Pydantic** | 2.7 | Request/response validation and settings management |
 | **python-jose** | 3.3 | JWT token creation and verification (HS256) |
 | **passlib[bcrypt]** | 1.7 | Password hashing (bcrypt) |
@@ -244,20 +248,20 @@ SAMARTH uses **MongoDB** with **Motor** (async driver) and **Beanie** (ODM). All
 
 | Collection | Document Model | Description |
 |---|---|---|
-| `users` | `User` | Authentication records — email, bcrypt hash, role (`patient`\|`therapist`), JWT timestamps |
-| `patients` | `Patient` | Patient profile — linked `user_id`, diagnosis, therapist assignment, compliance rate |
-| `therapists` | `Therapist` | Therapist profile — linked `user_id`, specialisation, patient list |
-| `exercises` | `Exercise` | Exercise library — name, category, target ROM (degrees), target reps/sets, safety instructions, contraindications |
-| `exercise_plans` | `ExercisePlan` | Therapist-assigned plans — list of exercises, frequency, start/end date |
-| `sessions` | `Session` | Per-exercise-session record — mode (`live`\|`upload`\|`sensor`), status, duration, total reps, ROM averages, symmetry score |
-| `pose_data` | `PoseData` | Raw per-frame landmark dump (33 keypoints × `x,y,z,visibility`) — linked to session |
-| `angle_data` | `AngleData` | Computed joint angles per frame — left/right knee, hip, ankle (degrees) — linked to session |
-| `uploaded_videos` | `UploadedVideo` | Video upload metadata — filename, storage URL, PS1 processing status |
-| `feedback_events` | `FeedbackEvent` | Real-time PS2 form-error events — flag type, rep index, severity |
-| `analytics` | `AnalyticsSnapshot` | Aggregated weekly analytics — ROM averages, compliance, rep totals, symmetry index |
-| `reports` | `Report` | Generated PDF/CSV report records — type, file URL, date range |
-| `notifications` | `Notification` | In-app notifications — type, message, read status, linked patient |
-| `system_logs` | `SystemLog` | Structured audit log — action, actor, resource, timestamp |
+| `users` | `User` | Authentication records - email, bcrypt hash, role (`patient`\|`therapist`), JWT timestamps |
+| `patients` | `Patient` | Patient profile - linked `user_id`, diagnosis, therapist assignment, compliance rate |
+| `therapists` | `Therapist` | Therapist profile - linked `user_id`, specialisation, patient list |
+| `exercises` | `Exercise` | Exercise library - name, category, target ROM (degrees), target reps/sets, safety instructions, contraindications |
+| `exercise_plans` | `ExercisePlan` | Therapist-assigned plans - list of exercises, frequency, start/end date |
+| `sessions` | `Session` | Per-exercise-session record - mode (`live`\|`upload`\|`sensor`), status, duration, total reps, ROM averages, symmetry score |
+| `pose_data` | `PoseData` | Raw per-frame landmark dump (33 keypoints × `x,y,z,visibility`) - linked to session |
+| `angle_data` | `AngleData` | Computed joint angles per frame - left/right knee, hip, ankle (degrees) - linked to session |
+| `uploaded_videos` | `UploadedVideo` | Video upload metadata - filename, storage URL, PS1 processing status |
+| `feedback_events` | `FeedbackEvent` | Real-time PS2 form-error events - flag type, rep index, severity |
+| `analytics` | `AnalyticsSnapshot` | Aggregated weekly analytics - ROM averages, compliance, rep totals, symmetry index |
+| `reports` | `Report` | Generated PDF/CSV report records - type, file URL, date range |
+| `notifications` | `Notification` | In-app notifications - type, message, read status, linked patient |
+| `system_logs` | `SystemLog` | Structured audit log - action, actor, resource, timestamp |
 
 ### Key Relationships
 
@@ -286,7 +290,7 @@ Patient ──< AnalyticsSnapshot
 
 SAMARTH uses **two persistent WebSocket channels**, both authenticated via JWT token in the URL path (avoiding cookie complexity in WebSocket handshakes).
 
-### Channel 1 — Camera Validation
+### Channel 1 - Camera Validation
 
 ```
 Endpoint: ws://localhost:8000/ws/camera/{jwt_access_token}
@@ -319,7 +323,7 @@ Timeout:  15 seconds of inactivity
     "adequate_lighting": true,
     "camera_stable": true,
     "all_valid": false,
-    "guidance_message": "Move back — ankles not visible. Ensure feet are in frame"
+    "guidance_message": "Move back - ankles not visible. Ensure feet are in frame"
   },
   "landmarks": {
     "LEFT_HIP":   { "x_norm": 0.48, "y_norm": 0.52, "visibility": 0.97 },
@@ -329,7 +333,7 @@ Timeout:  15 seconds of inactivity
 }
 ```
 
-### Channel 2 — Live Exercise Session
+### Channel 2 - Live Exercise Session
 
 ```
 Endpoint: ws://localhost:8000/ws/session/{session_id}/{jwt_access_token}
@@ -383,7 +387,7 @@ The backend uses a simple flexion-peak detector on the knee angle signal:
 
 SAMARTH is architected around three decoupled processing modules (PS1, PS2, PS3). Each has a defined interface contract exposed through the backend service layer.
 
-### PS1 — KinemaFlow (Computer Vision)
+### PS1 - KinemaFlow (Computer Vision)
 
 **Status: Integrated and active**
 
@@ -396,25 +400,18 @@ The PS1 pipeline (`/pipeline/`) is the team's existing computer vision engine. I
 3. Manages per-session `PoseEstimator` and `KinematicsExtractor` lifecycle (create/close)
 
 **PS1 modules used:**
-- `modules.pose_estimator.PoseEstimator` — MediaPipe Pose wrapper
-- `modules.kinematics.KinematicsExtractor` — Joint angle computation from landmark coordinates
-- `modules.background_seg.BackgroundSegmenter` — Background removal (batch mode)
-- `modules.video_enhance.VideoEnhancer` — Brightness/contrast correction (batch mode)
-- `modules.filter_utils` — Butterworth signal filtering
-- `modules.feature_extractor` — Feature extraction utilities
+- `modules.pose_estimator.PoseEstimator` - MediaPipe Pose wrapper
+- `modules.kinematics.KinematicsExtractor` - Joint angle computation from landmark coordinates
+- `modules.background_seg.BackgroundSegmenter` - Background removal (batch mode)
+- `modules.video_enhance.VideoEnhancer` - Brightness/contrast correction (batch mode)
+- `modules.filter_utils` - Butterworth signal filtering
+- `modules.feature_extractor` - Feature extraction utilities
 
-### PS2 — Exercise Analysis ML Model
+### PS2 - Exercise Analysis ML Model
 
-**Status: Stub (ready for integration)**
+**Status: Integrated with RehabNet checkpoint**
 
-The PS2 module analyses biomechanical time-series data to classify movement quality and detect error patterns. The frontend UI is **fully wired** for PS2 output — all error flag visualisations, quality scores, and recommendations are already implemented.
-
-**To integrate your trained model:**
-
-1. Open [`backend/services/exercise_analysis/model_analyzer.py`](backend/services/exercise_analysis/model_analyzer.py)
-2. Implement `load_model()` and `analyze_rep(angle_timeseries, rep_metadata)` using your model
-3. Set `PS2_MODEL_PATH=/path/to/your/model.pkl` in `.env`
-4. The system auto-detects the path and switches from mock to real analyzer
+The PS2 module analyses PS1 biomechanical time-series data to classify movement quality and detect error patterns. Set `PS2_MODEL_PATH=../pipeline/ps2/rehabnet_best.pth` and `PS2_USE_REAL_MODEL=true` in `.env` to load the real RehabNet analyzer. If the checkpoint cannot be loaded, the backend falls back to the mock analyzer instead of reporting fake real-model output.
 
 **Error flags tracked (6 categories):**
 
@@ -427,7 +424,7 @@ The PS2 module analyses biomechanical time-series data to classify movement qual
 | `asymmetric` | Left/right bilateral ROM difference > threshold |
 | `trunk_comp` | Excessive trunk lateral flexion |
 
-### PS3 — Wearable Sensor Hub
+### PS3 - Wearable Sensor Hub
 
 **Status: Stub (ready for integration)**
 
@@ -504,8 +501,8 @@ dashboard/
 │   │   └── notifications.py         # Notification management
 │   │
 │   ├── ws_handlers/
-│   │   ├── session_ws.py            # /ws/session/{id}/{token} — live exercise
-│   │   └── camera_ws.py             # /ws/camera/{token} — camera validation
+│   │   ├── session_ws.py            # /ws/session/{id}/{token} - live exercise
+│   │   └── camera_ws.py             # /ws/camera/{token} - camera validation
 │   │
 │   ├── models/                      # Beanie document models (14 collections)
 │   │   ├── user.py                  # User (auth)
@@ -519,10 +516,10 @@ dashboard/
 │   └── services/
 │       ├── auth_service.py          # JWT creation/verification, password hashing
 │       ├── pose_engine/
-│       │   ├── adapter.py           # PoseEngineAdapter — gateway to PS1
+│       │   ├── adapter.py           # PoseEngineAdapter - gateway to PS1
 │       │   └── schemas.py           # RealtimeFrameResult, BatchProcessingResult, etc.
-│       ├── exercise_analysis/       # PS2 ML stub — model_analyzer.py
-│       └── sensor_hub/              # PS3 sensor stub — mock_sensor.py
+│       ├── exercise_analysis/       # PS2 ML stub - model_analyzer.py
+│       └── sensor_hub/              # PS3 sensor stub - mock_sensor.py
 │
 ├── frontend/
 │   ├── src/
@@ -556,8 +553,9 @@ dashboard/
 │
 ├── docker-compose.yml               # Backend + Frontend containers
 ├── .env                             # Root environment variables
-└── logo.png                         # SAMARTH brand mark
+└── logo.jpeg                        # SAMARTH brand mark
 ```
+
 
 ---
 
@@ -571,7 +569,7 @@ dashboard/
 | Python | 3.10 or higher |
 | MongoDB Atlas | Free tier (M0) or local MongoDB |
 
-### Step 1 — Clone and configure environment
+### Step 1 - Clone and configure environment
 
 ```bash
 git clone <repository-url>
@@ -585,7 +583,7 @@ MONGO_URI=mongodb+srv://<user>:<password>@<cluster>.mongodb.net/<dbname>
 JWT_SECRET=<generate with: python -c "import secrets; print(secrets.token_hex(64))">
 ```
 
-### Step 2 — Backend setup
+### Step 2 - Backend setup
 
 ```bash
 cd backend
@@ -608,7 +606,7 @@ python -m uvicorn main:app --host 0.0.0.0 --port 8000 --env-file "../.env" --rel
 
 The Swagger API docs will be available at: **http://localhost:8000/docs**
 
-### Step 3 — Frontend setup
+### Step 3 - Frontend setup
 
 ```bash
 cd frontend
@@ -618,14 +616,14 @@ npm run dev
 
 The application will be available at: **http://localhost:5173**
 
-### Step 4 — Seed exercise library
+### Step 4 - Seed exercise library
 
 On first run, seed the exercise database by calling:
 ```bash
 curl -X POST http://localhost:8000/api/v1/exercises/seed
 ```
 
-Or simply click **Start Exercise** on the patient dashboard — the UI auto-seeds on empty library.
+Or simply click **Start Exercise** on the patient dashboard - the UI auto-seeds on empty library.
 
 ---
 
@@ -633,23 +631,23 @@ Or simply click **Start Exercise** on the patient dashboard — the UI auto-seed
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `MONGO_URI` | Yes | — | MongoDB Atlas connection string |
+| `MONGO_URI` | Yes | - | MongoDB Atlas connection string |
 | `MONGO_DB_NAME` | No | `samarth` | MongoDB database name |
-| `JWT_SECRET` | Yes | — | HS256 signing secret (min 64 chars) |
+| `JWT_SECRET` | Yes | - | HS256 signing secret (min 64 chars) |
 | `JWT_ALGORITHM` | No | `HS256` | Token signing algorithm |
 | `JWT_ACCESS_TOKEN_EXPIRE_MINUTES` | No | `60` | Access token TTL |
 | `JWT_REFRESH_TOKEN_EXPIRE_DAYS` | No | `30` | Refresh token TTL |
 | `FRONTEND_ORIGIN` | No | `http://localhost:5173` | CORS allowed origin |
 | `STORAGE_BACKEND` | No | `local` | `local` or `cloudinary` |
 | `LOCAL_UPLOAD_DIR` | No | `./uploads` | Local video upload directory |
-| `CLOUDINARY_CLOUD_NAME` | No | — | Cloudinary cloud (production) |
-| `CLOUDINARY_API_KEY` | No | — | Cloudinary API key |
-| `CLOUDINARY_API_SECRET` | No | — | Cloudinary API secret |
+| `CLOUDINARY_CLOUD_NAME` | No | - | Cloudinary cloud (production) |
+| `CLOUDINARY_API_KEY` | No | - | Cloudinary API key |
+| `CLOUDINARY_API_SECRET` | No | - | Cloudinary API secret |
 | `PS1_PIPELINE_PATH` | No | `../pipeline` | Relative path to PS1 directory |
 | `PS1_STRIDE` | No | `2` | Frame stride for batch processing |
 | `PS1_ENHANCE` | No | `true` | Enable video enhancement (batch) |
-| `PS2_MODEL_PATH` | No | `""` | Path to trained PS2 model file |
-| `PS2_USE_REAL_MODEL` | No | `false` | Auto-set when model path exists |
+| `PS2_MODEL_PATH` | No | `../pipeline/ps2/rehabnet_best.pth` | Path to trained RehabNet PS2 model file |
+| `PS2_USE_REAL_MODEL` | No | `true` | Enable real RehabNet inference when the model loads |
 | `PS3_SENSOR_PORT` | No | `""` | Serial port for BLE sensor |
 | `PS3_USE_REAL_SENSOR` | No | `false` | Enable real sensor reads |
 | `PS3_BAUD_RATE` | No | `115200` | Serial baud rate |
@@ -668,8 +666,8 @@ docker-compose up --build
 ```
 
 This starts:
-- **Backend** on port `8000` — FastAPI + Uvicorn, with `/pipeline/` mounted read-only
-- **Frontend** on port `5173` — Vite dev server (or build for Nginx in production)
+- **Backend** on port `8000` - FastAPI + Uvicorn, with `/pipeline/` mounted read-only
+- **Frontend** on port `5173` - Vite dev server (or build for Nginx in production)
 
 For production, set `STORAGE_BACKEND=cloudinary` and configure Cloudinary credentials to avoid relying on local filesystem for video storage.
 
@@ -677,9 +675,9 @@ For production, set `STORAGE_BACKEND=cloudinary` and configure Cloudinary creden
 
 ## Integrating PS2 and PS3
 
-### PS2 — Your Machine Learning Exercise Analyzer
+### PS2 - RehabNet Exercise Analyzer
 
-The system is fully wired for PS2. The mock analyzer generates randomised error flags so the full UI can be tested immediately. When your model is ready:
+The system is wired to `backend/services/exercise_analysis/model_analyzer.py`, which loads `pipeline/ps2/rehabnet_best.pth`. Upload and live-session flows pass PS1 joint-angle data into RehabNet, then store the returned per-rep flags, confidence values, quality trend, score, and recommendations for the summary page.
 
 1. Place your model weights file anywhere accessible to the backend
 2. Set `PS2_MODEL_PATH=/absolute/path/to/model.pkl` in `.env`
@@ -704,9 +702,9 @@ def analyze_rep(self, angle_timeseries: dict, rep_metadata: dict) -> dict:
     }
 ```
 
-The `PS2_USE_REAL_MODEL` flag is **automatically set** to `true` when `PS2_MODEL_PATH` points to an existing file — no other config change needed.
+The `PS2_USE_REAL_MODEL` flag is **automatically set** to `true` when `PS2_MODEL_PATH` points to an existing file - no other config change needed.
 
-### PS3 — Your Wearable Sensor
+### PS3 - Your Wearable Sensor
 
 1. Implement your BLE/serial reader in `backend/services/sensor_hub/real_sensor.py`
 2. The sensor HUD frontend component polls `GET /api/v1/sensor/status` and `GET /api/v1/sensor/data` at 2 Hz
@@ -716,7 +714,7 @@ The `PS2_USE_REAL_MODEL` flag is **automatically set** to `true` when `PS2_MODEL
 
 <div align="center">
 
-**SAMARTH** — Physiotherapy · Machine Learning · Impact
+**SAMARTH** - Physiotherapy · Machine Learning · Impact
 
 *IIT (BHU) Varanasi*
 

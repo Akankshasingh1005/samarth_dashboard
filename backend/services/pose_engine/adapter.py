@@ -21,7 +21,7 @@ import numpy as np
 import cv2
 from loguru import logger
 
-from config import settings
+from backend_config import settings
 from .schemas import (
     RealtimeFrameResult, BatchProcessingResult,
     EngineStatus, FrameAngles, FrameValidation, LandmarkCoord, SymmetryResult, RepetitionResult
@@ -246,6 +246,7 @@ class PoseEngineAdapter:
         """
         Run PS1's full pipeline on an uploaded video file.
         Calls PS1's run_pipeline_on_video() — the same function used in PS1's main.py.
+        Always generates an annotated video for upload flows.
         """
         try:
             os.makedirs(output_dir, exist_ok=True)
@@ -266,13 +267,16 @@ class PoseEngineAdapter:
             enhancer = VideoEnhancer(enabled=settings.PS1_ENHANCE, level=settings.PS1_ENHANCE_LEVEL)
             pose_estimator = PoseEstimator()
 
+            # Always generate annotated video for upload flows so the user
+            # can see their pose overlay — reuses PS1 exporter's existing
+            # generate_annotated_video() which draws skeleton, angles, reps.
             ts_df, sum_df, video_summary = ps1_main.run_pipeline_on_video(
                 video_path=video_path,
                 output_subfolder_dir=output_dir,
                 bg_handler=bg_handler,
                 pose_estimator=pose_estimator,
                 stride=settings.PS1_STRIDE,
-                save_annotated_video=settings.PS1_SAVE_ANNOTATED_VIDEO,
+                save_annotated_video=True,
                 enhancer=enhancer,
             )
             pose_estimator.close()
@@ -286,13 +290,38 @@ class PoseEngineAdapter:
 
             ts = video_summary.get("time_series_data", {})
             total_frames = len(ts.get("left_knee", []))
+            landmarks_detected_count = int(video_summary.get("landmarks_detected_count", 0))
+
+            if landmarks_detected_count <= 0:
+                return BatchProcessingResult(
+                    session_id=session_id,
+                    video_name=os.path.basename(video_path),
+                    fps=video_summary.get("fps", 30.0),
+                    total_frames=total_frames,
+                    landmarks_detected_count=0,
+                    time_series={},
+                    repetitions=[],
+                    symmetry={},
+                    avg_left_rom=0.0,
+                    avg_right_rom=0.0,
+                    total_reps=0,
+                    quality_summary=video_summary.get("quality_summary", {}),
+                    status="failed",
+                    error="No person pose was detected in the uploaded video. Please upload a clear full-body recording.",
+                )
+
+            # Find annotated video in the output directory
+            annotated_video_path = None
+            annotated_candidate = os.path.join(output_dir, "annotated_video.mp4")
+            if os.path.exists(annotated_candidate):
+                annotated_video_path = annotated_candidate
 
             return BatchProcessingResult(
                 session_id=session_id,
                 video_name=os.path.basename(video_path),
                 fps=video_summary.get("fps", 30.0),
                 total_frames=total_frames,
-                landmarks_detected_count=total_frames,  # PS1 fills with mock if not detected
+                landmarks_detected_count=landmarks_detected_count,
                 time_series={k: [float(x) for x in v] for k, v in ts.items() if isinstance(v, list)},
                 repetitions=reps,
                 symmetry=symmetry,
@@ -302,6 +331,7 @@ class PoseEngineAdapter:
                 quality_summary=video_summary.get("quality_summary", {}),
                 csv_timeseries_path=os.path.join(output_dir, "joint_data_timeseries.csv"),
                 csv_summary_path=os.path.join(output_dir, "exercise_summary.csv"),
+                annotated_video_path=annotated_video_path,
                 status="success",
             )
 

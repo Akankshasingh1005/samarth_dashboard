@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Dumbbell, BarChart3, FileText,
-  LogOut, User as UserIcon, Moon, Sun, Menu, X
+  LogOut, User as UserIcon, Menu, X
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -10,7 +10,7 @@ export default function Layout() {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
-  const [dark, setDark] = useState(() => {
+  const [dark] = useState(() => {
     return document.documentElement.classList.contains('dark') ||
       localStorage.getItem('theme') === 'dark';
   });
@@ -135,27 +135,16 @@ export default function Layout() {
             </div>
           </div>
 
-          <div className="flex gap-2">
-            {/* Theme selector */}
-            <button
-              onClick={() => setDark(!dark)}
-              className="flex-1 flex items-center justify-center gap-2 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-              title="Toggle theme"
-            >
-              {dark ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4" />}
-              <span className="text-xs font-semibold">{dark ? 'Light' : 'Dark'}</span>
-            </button>
-
-            {/* Logout button */}
-            <button
-              onClick={handleLogout}
-              className="p-2.5 rounded-xl border border-red-200 dark:border-red-900/30 bg-red-50/50 dark:bg-red-950/20 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
-              title="Log out"
-              id="logout-btn"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
+          {/* Logout button */}
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl border border-red-200 dark:border-red-900/30 bg-red-50/50 dark:bg-red-950/20 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors"
+            title="Log out"
+            id="logout-btn"
+          >
+            <LogOut className="w-4 h-4" />
+            <span className="text-xs font-semibold">Log out</span>
+          </button>
         </div>
       </aside>
 

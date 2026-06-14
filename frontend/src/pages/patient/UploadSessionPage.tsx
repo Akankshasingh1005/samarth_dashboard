@@ -1,8 +1,25 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Upload, FileVideo, CheckCircle, AlertTriangle, ArrowLeft, Loader2 } from 'lucide-react';
+import { Upload, FileVideo, CheckCircle, ArrowLeft, Loader2, XCircle, RefreshCw } from 'lucide-react';
 import { sessionApi } from '@/api';
 import { toast } from 'sonner';
+
+// Pipeline processing steps
+const PIPELINE_STEPS = [
+  { key: 'uploading', label: 'Uploading video', icon: Upload },
+  { key: 'validating_video', label: 'Checking video conditions', icon: null },
+  { key: 'enhancing', label: 'Enhancing video quality', icon: null },
+  { key: 'pose_detection', label: 'Detecting body landmarks', icon: null },
+  { key: 'storing_results', label: 'Calculating joint angles', icon: null },
+  { key: 'exercise_analysis', label: 'Analyzing exercise form', icon: null },
+  { key: 'completing', label: 'Finalizing results', icon: null },
+  { key: 'done', label: 'Analysis complete', icon: CheckCircle },
+];
+
+function getStepIndex(step: string): number {
+  const idx = PIPELINE_STEPS.findIndex((s) => s.key === step);
+  return idx >= 0 ? idx : 0;
+}
 
 export default function UploadSessionPage() {
   const { sessionId } = useParams<{ sessionId: string; exerciseId: string }>();
@@ -14,6 +31,11 @@ export default function UploadSessionPage() {
   const [uploading, setUploading] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [processingError, setProcessingError] = useState('');
+  const [currentStep, setCurrentStep] = useState('uploading');
+  const [progressPct, setProgressPct] = useState(0);
+  const pollCountRef = useRef(0);
+  const [completed, setCompleted] = useState(false);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
 
   // Drag handlers
   const handleDrag = (e: React.DragEvent) => {
@@ -49,38 +71,68 @@ export default function UploadSessionPage() {
   const handleUpload = async () => {
     if (!file || !sessionId) return;
     setUploading(true);
+    setProcessingError('');
     try {
       await sessionApi.uploadVideo(sessionId, file);
       toast.success('Video uploaded successfully! Starting AI analysis...');
       setUploading(false);
       setProcessing(true);
+      setCurrentStep('validating_video');
+      setProgressPct(12);
+      pollCountRef.current = 0;
     } catch (err: any) {
-      toast.error('Upload failed. Please try again.');
+      const message = err?.response?.data?.detail || 'Upload failed. Please try again.';
+      toast.error(message);
+      setProcessingError(message);
       setUploading(false);
     }
   };
 
-  // Poll processing state
+  // Poll processing status using the new endpoint
   useEffect(() => {
     if (!processing || !sessionId) return;
     const interval = setInterval(async () => {
       try {
-        const session = await sessionApi.get(sessionId);
-        if (session.ps1_processed && session.ps2_processed) {
+        const status = await sessionApi.getProcessingStatus(sessionId);
+        setCurrentStep(status.step);
+        setProgressPct(status.progress_pct);
+        const nextPollCount = pollCountRef.current + 1;
+        pollCountRef.current = nextPollCount;
+
+        if (status.status === 'completed') {
           clearInterval(interval);
-          // Mark session complete in backend just in case
-          await sessionApi.complete(sessionId).catch(() => {});
           toast.success('AI biomechanical analysis complete!');
-          navigate(`/session/summary/${sessionId}`);
+          setCurrentStep('done');
+          setProgressPct(100);
+          // Fetch session to get annotated video URL
+          try {
+            const sess = await sessionApi.get(sessionId);
+            if (sess.video_url) setVideoUrl(sess.video_url);
+          } catch {}
+          setProcessing(false);
+          setCompleted(true);
+        } else if (status.status === 'failed') {
+          clearInterval(interval);
+          setProcessingError(status.error_message || 'Processing failed. The video may be corrupted or unsupported.');
+          setProcessing(false);
         }
       } catch (err) {
-        setProcessingError('Unable to verify processing status.');
-        clearInterval(interval);
+        // Don't kill polling on transient network errors — retry
+        const nextPollCount = pollCountRef.current + 1;
+        pollCountRef.current = nextPollCount;
+        if (nextPollCount > 60) {
+          // After ~3 minutes of polling, give up
+          setProcessingError('Processing is taking too long. Please try again with a shorter video.');
+          clearInterval(interval);
+          setProcessing(false);
+        }
       }
     }, 3000); // Check every 3 seconds
 
     return () => clearInterval(interval);
   }, [processing, sessionId, navigate]);
+
+  const activeStepIdx = getStepIndex(currentStep);
 
   return (
     <div className="min-h-screen bg-samarth-bg pb-12">
@@ -105,7 +157,7 @@ export default function UploadSessionPage() {
         <div className="samarth-card p-8 md:p-10 space-y-8">
           
           {/* Form Step: Ingestion */}
-          {!uploading && !processing && (
+          {!uploading && !processing && !processingError && !completed && (
             <div className="space-y-6">
               <div
                 className={`border-2 border-dashed rounded-3xl p-10 flex flex-col items-center justify-center transition-all ${
@@ -183,41 +235,130 @@ export default function UploadSessionPage() {
             </div>
           )}
 
-          {/* Form Step: Processing Engine */}
+          {/* Form Step: Processing Pipeline — Multi-step stepper */}
           {processing && (
-            <div className="text-center py-10 space-y-6">
-              <div className="relative w-16 h-16 mx-auto">
-                <Loader2 className="w-16 h-16 text-accent animate-spin" />
-                <div className="absolute inset-0 flex items-center justify-center font-display font-black text-xs text-accent">
-                  AI
+            <div className="py-8 space-y-8">
+              {/* Progress bar */}
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs text-slate-500">
+                  <span>Processing...</span>
+                  <span className="font-semibold text-brand">{progressPct}%</span>
                 </div>
-              </div>
-              <div className="space-y-2 max-w-sm mx-auto">
-                <h3 className="text-lg font-bold text-slate-800">KinemaFlow analysis in progress...</h3>
-                <p className="text-slate-500 text-sm">
-                  Our computer vision pipeline is segmenting the background, identifying joint landmarks, and calculating kinematics.
-                </p>
-                <div className="pt-4 flex flex-col gap-2">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-green-600 bg-green-50 px-3 py-1.5 rounded-lg border border-green-100 justify-center">
-                    <CheckCircle className="w-4 h-4" />
-                    <span>Video saved successfully</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs font-semibold text-slate-600 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100 justify-center">
-                    <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-400" />
-                    <span>Extracting joints & angles</span>
-                  </div>
+                <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-brand to-accent rounded-full transition-all duration-700 ease-out"
+                    style={{ width: `${progressPct}%` }}
+                  />
                 </div>
               </div>
 
-              {processingError && (
-                <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm flex items-start gap-2.5 text-left max-w-md mx-auto">
-                  <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-semibold">Processing error</p>
-                    <p className="text-xs mt-0.5 opacity-90">{processingError}</p>
-                  </div>
+              {/* Pipeline stepper */}
+              <div className="space-y-1.5">
+                {PIPELINE_STEPS.map((step, idx) => {
+                  const isActive = idx === activeStepIdx;
+                  const isDone = idx < activeStepIdx || currentStep === 'done';
+                  const isPending = idx > activeStepIdx && currentStep !== 'done';
+
+                  return (
+                    <div
+                      key={step.key}
+                      className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                        isActive
+                          ? 'bg-brand-50 border border-brand-100'
+                          : isDone
+                          ? 'bg-green-50/50 border border-green-100/50'
+                          : 'bg-slate-50/50 border border-transparent'
+                      }`}
+                    >
+                      {isDone ? (
+                        <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                      ) : isActive ? (
+                        <Loader2 className="w-5 h-5 text-brand animate-spin flex-shrink-0" />
+                      ) : (
+                        <div className="w-5 h-5 rounded-full border-2 border-slate-200 flex-shrink-0" />
+                      )}
+                      <span
+                        className={`text-sm font-medium ${
+                          isActive
+                            ? 'text-brand font-semibold'
+                            : isDone
+                            ? 'text-green-700'
+                            : isPending
+                            ? 'text-slate-400'
+                            : 'text-slate-600'
+                        }`}
+                      >
+                        {step.label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <p className="text-xs text-slate-400 text-center">
+                This may take 30–90 seconds depending on video length.
+              </p>
+            </div>
+          )}
+
+          {/* Error state */}
+          {processingError && (
+            <div className="text-center py-10 space-y-6">
+              <div className="w-16 h-16 bg-red-100 text-red-500 rounded-2xl flex items-center justify-center mx-auto">
+                <XCircle className="w-8 h-8" />
+              </div>
+              <div className="space-y-2 max-w-sm mx-auto">
+                <h3 className="text-lg font-bold text-slate-800">Processing Failed</h3>
+                <p className="text-slate-500 text-sm">{processingError}</p>
+              </div>
+              <button
+                onClick={() => {
+                  setProcessingError('');
+                  setFile(null);
+                  setProcessing(false);
+                  setCurrentStep('uploading');
+                  setProgressPct(0);
+                  pollCountRef.current = 0;
+                }}
+                className="btn-secondary"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Try Again
+              </button>
+            </div>
+          )}
+
+          {/* Completed: Show annotated video + navigate to summary */}
+          {completed && (
+            <div className="py-8 space-y-6 text-center">
+              <div className="w-16 h-16 bg-green-100 text-green-500 rounded-2xl flex items-center justify-center mx-auto">
+                <CheckCircle className="w-8 h-8" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-lg font-bold text-slate-800">Analysis Complete!</h3>
+                <p className="text-slate-500 text-sm">Your exercise has been processed with AI biomechanical analysis.</p>
+              </div>
+
+              {videoUrl && (
+                <div className="bg-slate-900 rounded-2xl overflow-hidden max-w-xl mx-auto">
+                  <video
+                    src={videoUrl}
+                    controls
+                    className="w-full"
+                    style={{ maxHeight: '400px' }}
+                    playsInline
+                  />
+                  <p className="text-xs text-slate-400 py-2">Annotated exercise video with pose overlay</p>
                 </div>
               )}
+
+              <button
+                onClick={() => navigate(`/session/summary/${sessionId}`)}
+                className="btn-primary py-3 px-8 text-base"
+                id="view-results-btn"
+              >
+                View Detailed Results
+              </button>
             </div>
           )}
 

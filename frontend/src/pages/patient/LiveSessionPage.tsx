@@ -8,6 +8,7 @@ import {
 import { useSessionStore } from '@/stores/sessionStore';
 import { useAuthStore } from '@/stores/authStore';
 import { sessionApi } from '@/api';
+import { drawPoseOverlay } from '@/api/poseOverlay';
 import { toast } from 'sonner';
 import type { PS2ErrorFlags, PS2Confidence } from '@/types';
 
@@ -67,14 +68,17 @@ export default function LiveSessionPage() {
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const sendIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const landmarksRef = useRef<Record<string, any>>({});
 
   const [paused, setPaused] = useState(false);
   const [ending, setEnding] = useState(false);
   const [lastRep, setLastRep] = useState<{ flags: PS2ErrorFlags; confidence: PS2Confidence; score: number } | null>(null);
+  const [ps2Mode, setPs2Mode] = useState<'mock' | 'real'>('mock');
   const [qualityTrend, setQualityTrend] = useState<'improving' | 'stable' | 'declining'>('stable');
   const [scores, setScores] = useState<number[]>([]);
   const [sensorData] = useState({ battery: 82, connected: false }); // PS3 stub
@@ -139,9 +143,9 @@ export default function LiveSessionPage() {
   useEffect(() => {
     const setup = async () => {
       try {
-        // Try with ideal constraints first
+        // Request portrait-friendly ratio for full-body exercise visibility
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { width: { ideal: 640 }, height: { ideal: 480 } },
+          video: { width: { ideal: 480 }, height: { ideal: 640 }, facingMode: 'user' },
           audio: false,
         });
         streamRef.current = stream;
@@ -195,7 +199,24 @@ export default function LiveSessionPage() {
             if (data.pose_confidence !== undefined) setConfidence(data.pose_confidence);
             if (data.rep_count !== undefined && data.rep_count !== repCount) {
               setRepCount(data.rep_count);
-              handleRepCompleted(data.rep_count);
+              if (data.ps2_mode === 'real' || data.ps2_mode === 'mock') {
+                setPs2Mode(data.ps2_mode);
+              }
+              handleRepCompleted(data.rep_count, data.rep_result);
+            }
+            // Draw skeleton overlay using received landmarks
+            if (data.landmarks) {
+              landmarksRef.current = data.landmarks;
+              const overlay = overlayCanvasRef.current;
+              const video = videoRef.current;
+              if (overlay && video) {
+                overlay.width = video.videoWidth || video.clientWidth;
+                overlay.height = video.videoHeight || video.clientHeight;
+                const ctx = overlay.getContext('2d');
+                if (ctx) {
+                  drawPoseOverlay(ctx, overlay.width, overlay.height, data.landmarks, data.angles);
+                }
+              }
             }
           }
         } catch {}
@@ -208,36 +229,52 @@ export default function LiveSessionPage() {
     setup();
     return () => {
       if (sendIntervalRef.current) clearInterval(sendIntervalRef.current);
-      wsRef.current?.send(JSON.stringify({ type: 'end' }));
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({ type: 'end' }));
+      }
       wsRef.current?.close();
       streamRef.current?.getTracks().forEach((t) => t.stop());
     };
   }, [sessionId, accessToken]);
 
-  const handleRepCompleted = (repNumber: number) => {
-    // Simulate PS2 per-rep result (will be replaced when .pth model is loaded)
-    const score = Math.random() * 0.4 + 0.6;
-    const flags: PS2ErrorFlags = {
-      insufficient_ROM: score < 0.7 ? 1 : 0,
-      too_fast: Math.random() > 0.8 ? 1 : 0,
-      too_slow: 0,
-      knee_valgus: Math.random() > 0.85 ? 1 : 0,
-      asymmetric: Math.random() > 0.75 ? 1 : 0,
-      trunk_comp: Math.random() > 0.9 ? 1 : 0,
-    };
-    const confidence: PS2Confidence = {
-      insufficient_ROM: flags.insufficient_ROM ? 0.85 : 0.12,
-      too_fast: flags.too_fast ? 0.87 : 0.08,
-      too_slow: 0.05,
-      knee_valgus: flags.knee_valgus ? 0.78 : 0.04,
-      asymmetric: flags.asymmetric ? 0.82 : 0.15,
-      trunk_comp: flags.trunk_comp ? 0.75 : 0.06,
-    };
+  const handleRepCompleted = (repNumber: number, repResult?: any) => {
+    let score: number;
+    let flags: PS2ErrorFlags;
+    let confidence: PS2Confidence;
+
+    if (repResult) {
+      flags = repResult.error_flags;
+      confidence = repResult.confidence;
+      score = repResult.session?.session_score ?? 0.8;
+      if (repResult.session?.quality_trend) {
+        setQualityTrend(repResult.session.quality_trend);
+      }
+    } else {
+      // Simulate PS2 per-rep result (fallback)
+      score = Math.random() * 0.4 + 0.6;
+      flags = {
+        insufficient_ROM: score < 0.7 ? 1 : 0,
+        too_fast: Math.random() > 0.8 ? 1 : 0,
+        too_slow: 0,
+        knee_valgus: Math.random() > 0.85 ? 1 : 0,
+        asymmetric: Math.random() > 0.75 ? 1 : 0,
+        trunk_comp: Math.random() > 0.9 ? 1 : 0,
+      };
+      confidence = {
+        insufficient_ROM: flags.insufficient_ROM ? 0.85 : 0.12,
+        too_fast: flags.too_fast ? 0.87 : 0.08,
+        too_slow: 0.05,
+        knee_valgus: flags.knee_valgus ? 0.78 : 0.04,
+        asymmetric: flags.asymmetric ? 0.82 : 0.15,
+        trunk_comp: flags.trunk_comp ? 0.75 : 0.06,
+      };
+    }
+
     setLastRep({ flags, confidence, score });
 
     const newScores = [...scores, score];
     setScores(newScores);
-    if (newScores.length >= 3) {
+    if (!repResult && newScores.length >= 3) {
       const first = newScores.slice(0, Math.floor(newScores.length / 2));
       const second = newScores.slice(Math.floor(newScores.length / 2));
       const avg1 = first.reduce((a, b) => a + b, 0) / first.length;
@@ -271,6 +308,15 @@ export default function LiveSessionPage() {
     if (ending) return;
     setEnding(true);
     try {
+      if (sendIntervalRef.current) {
+        clearInterval(sendIntervalRef.current);
+        sendIntervalRef.current = null;
+      }
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({ type: 'end' }));
+        wsRef.current.close();
+      }
+      await new Promise((resolve) => setTimeout(resolve, 800));
       await sessionApi.complete(sessionId!);
       toast.success('Session completed! Analyzing your performance...');
       resetSession();
@@ -364,7 +410,8 @@ export default function LiveSessionPage() {
               </div>
             </div>
           )}
-          <video ref={videoRef} className="w-full h-full object-cover" muted playsInline style={{ minHeight: '60vh' }} />
+          <video ref={videoRef} className="w-full h-full object-contain" muted playsInline style={{ minHeight: '60vh' }} />
+          <canvas ref={overlayCanvasRef} className="absolute inset-0 w-full h-full pointer-events-none" style={{ objectFit: 'contain' }} />
           <canvas ref={canvasRef as any} className="hidden" />
 
           {/* Confidence indicator */}
@@ -413,7 +460,9 @@ export default function LiveSessionPage() {
                 <h3 className="font-display font-bold text-samarth-text text-sm uppercase tracking-wide">
                   Last Rep Analysis
                 </h3>
-                <span className="badge-mock">PS2 Mock</span>
+                <span className={ps2Mode === 'real' ? 'badge-success' : 'badge-mock'}>
+                  {ps2Mode === 'real' ? 'PS2 RehabNet' : 'PS2 Mock'}
+                </span>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {Object.entries(ERROR_FLAG_LABELS).map(([key, meta]) => {

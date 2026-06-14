@@ -92,9 +92,29 @@ export default function ReportsPage() {
     }
   };
 
-  const handleDownload = (url: string) => {
-    // Open in new tab or download directly
-    window.open(`http://localhost:8000${url}`, '_blank');
+  const handleDownload = async (url: string) => {
+    if (!url) {
+      toast.error('No download URL available');
+      return;
+    }
+    try {
+      const blob = await reportApi.download(url);
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      
+      const filename = url.split('/').pop()?.split('?')[0] || 'report.csv';
+      link.setAttribute('download', filename);
+      
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(blobUrl);
+      toast.success('Download completed');
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error('Failed to download file');
+    }
   };
 
   return (
@@ -214,20 +234,24 @@ export default function ReportsPage() {
                   </div>
 
                   <div className="flex gap-2">
-                    <button
-                      onClick={() => handleDownload(report.pdf_url)}
-                      className="btn-secondary px-3 py-2 text-xs flex items-center gap-1.5 border border-slate-200"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      PDF
-                    </button>
-                    <button
-                      onClick={() => handleDownload(report.csv_url)}
-                      className="btn-secondary px-3 py-2 text-xs flex items-center gap-1.5 border border-slate-200"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      CSV
-                    </button>
+                    {report.pdf_url && (
+                      <button
+                        onClick={() => handleDownload(report.pdf_url)}
+                        className="btn-secondary px-3 py-2 text-xs flex items-center gap-1.5 border border-slate-200"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        PDF
+                      </button>
+                    )}
+                    {report.csv_url && (
+                      <button
+                        onClick={() => handleDownload(report.csv_url)}
+                        className="btn-secondary px-3 py-2 text-xs flex items-center gap-1.5 border border-slate-200"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        CSV
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}

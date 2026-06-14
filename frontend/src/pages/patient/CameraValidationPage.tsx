@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useSessionStore } from '@/stores/sessionStore';
 import { useAuthStore } from '@/stores/authStore';
+import { drawPoseOverlay } from '@/api/poseOverlay';
 import type { ValidationStatus } from '@/types';
 import { toast } from 'sonner';
 
@@ -33,6 +34,7 @@ export default function CameraValidationPage() {
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const sendIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -57,9 +59,9 @@ export default function CameraValidationPage() {
   const connectCamera = useCallback(async () => {
     setCameraLoading(true);
     try {
-      // Try with ideal constraints first
+      // Request portrait-friendly ratio for full-body exercise visibility
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 640 }, height: { ideal: 480 } },
+        video: { width: { ideal: 480 }, height: { ideal: 640 }, facingMode: 'user' },
         audio: false,
       });
       streamRef.current = stream;
@@ -118,6 +120,21 @@ export default function CameraValidationPage() {
         if (data.type === 'validation') {
           setValidation(data.validation);
           if (data.angles) setAngles(data.angles);
+          // Draw skeleton overlay using landmarks from validation response
+          if (data.landmarks) {
+            const overlay = overlayCanvasRef.current;
+            const video = videoRef.current;
+            if (overlay && video) {
+              overlay.width = video.videoWidth || video.clientWidth;
+              overlay.height = video.videoHeight || video.clientHeight;
+              const ctx = overlay.getContext('2d');
+              if (ctx) {
+                drawPoseOverlay(ctx, overlay.width, overlay.height, data.landmarks, null, {
+                  showAngles: false,
+                });
+              }
+            }
+          }
         }
       } catch {}
     };
@@ -206,7 +223,8 @@ export default function CameraValidationPage() {
                       <Loader2 className="w-10 h-10 text-brand animate-spin" />
                     </div>
                   )}
-                  <video ref={videoRef} className="w-full h-full object-cover" muted playsInline />
+                  <video ref={videoRef} className="w-full h-full object-contain" muted playsInline />
+                  <canvas ref={overlayCanvasRef} className="absolute inset-0 w-full h-full pointer-events-none" style={{ objectFit: 'contain' }} />
                   <canvas ref={canvasRef} className="hidden" />
                   {/* Exercise zone overlay */}
                   <div className="absolute inset-0 pointer-events-none">
