@@ -2,8 +2,8 @@ import os
 import cv2
 import numpy as np
 import torch
-from config import ISNET_WEIGHTS_PATH, ISNET_INPUT_SIZE
-from models.isnet import ISNetDIS
+import importlib.util
+from config import ISNET_WEIGHTS_PATH, ISNET_INPUT_SIZE, MODELS_DIR
 
 class BackgroundSegmenter:
     """Handles background removal/segmentation using IS-Net architecture, falling back to MediaPipe pose segmentation if weights are missing"""
@@ -18,6 +18,13 @@ class BackgroundSegmenter:
             if os.path.exists(ISNET_WEIGHTS_PATH):
                 try:
                     print(f"[BackgroundSegmenter] Loading IS-Net weights from {ISNET_WEIGHTS_PATH}...")
+                    isnet_module_path = os.path.join(MODELS_DIR, "isnet.py")
+                    spec = importlib.util.spec_from_file_location("pipeline_isnet", isnet_module_path)
+                    if spec is None or spec.loader is None:
+                        raise ImportError(f"Unable to load IS-Net module from {isnet_module_path}")
+                    isnet_module = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(isnet_module)
+                    ISNetDIS = isnet_module.ISNetDIS
                     self.net = ISNetDIS(in_ch=3, out_ch=1)
                     # Load model state dict
                     state_dict = torch.load(ISNET_WEIGHTS_PATH, map_location=self.device)

@@ -5,6 +5,9 @@ import { Toaster } from 'sonner';
 import App from './App';
 import './styles/globals.css';
 
+document.documentElement.classList.remove('dark');
+localStorage.setItem('theme', 'light');
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {

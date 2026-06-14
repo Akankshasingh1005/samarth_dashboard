@@ -75,6 +75,18 @@ class Settings(BaseSettings):
     REPORTS_DIR: str = "./reports"
     WEASYPRINT_ENABLED: bool = True
 
+    @field_validator("DEBUG", mode="before")
+    @classmethod
+    def parse_debug_flag(cls, v):
+        """Accept common deployment labels that may be supplied as DEBUG values."""
+        if isinstance(v, str):
+            normalized = v.strip().lower()
+            if normalized in {"release", "prod", "production", "false", "0", "no", "off"}:
+                return False
+            if normalized in {"debug", "dev", "development", "true", "1", "yes", "on"}:
+                return True
+        return v
+
     @field_validator("PS2_USE_REAL_MODEL", mode="before")
     @classmethod
     def auto_detect_ps2(cls, v, info):

@@ -94,7 +94,6 @@ function ExerciseDetailModal({ exercise, onClose, onStart }: {
   exercise: Exercise; onClose: () => void; onStart: (mode: 'live' | 'upload') => void;
 }) {
   const [starting, setStarting] = useState<'live' | 'upload' | null>(null);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [imgError, setImgError] = useState(false);
   const gifSrc = exercise.gif_url ? `${API_BASE}${exercise.gif_url}` : null;
 
@@ -190,7 +189,7 @@ function ExerciseDetailModal({ exercise, onClose, onStart }: {
               <span className="text-xs opacity-80 font-normal">Camera + Real-time</span>
             </button>
             <button
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => handleStart('upload')}
               disabled={!!starting}
               className="btn-secondary py-4 flex-col h-auto gap-1"
             >
@@ -199,8 +198,6 @@ function ExerciseDetailModal({ exercise, onClose, onStart }: {
               <span className="text-xs opacity-80 font-normal">Analyze recorded video</span>
             </button>
           </div>
-          <input ref={fileInputRef} type="file" accept="video/*" className="hidden"
-            onChange={(e) => { if (e.target.files?.[0]) handleStart('upload'); }} />
         </div>
       </div>
     </div>

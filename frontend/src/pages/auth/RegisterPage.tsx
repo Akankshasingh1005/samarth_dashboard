@@ -16,25 +16,39 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const validatePassword = (value: string) => {
+    if (value.length < 8) return 'Password must be at least 8 characters long.';
+    if (!/[a-z]/.test(value)) return 'Password must contain at least one lowercase letter.';
+    if (!/[A-Z]/.test(value)) return 'Password must contain at least one uppercase letter.';
+    if (!/[0-9]/.test(value)) return 'Password must contain at least one number.';
+    if (!/[!@#$%^&*()_+\-=[\]{};:'",.<>?/\\|`~]/.test(value)) return 'Password must contain at least one special character.';
+    return '';
+  };
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      setError(passwordError);
+      return;
+    }
     setLoading(true);
     try {
       const { setAuth } = useAuthStore.getState();
       const data = await authApi.register({
-        email,
+        email: email.trim(),
         password,
-        first_name: firstName,
-        last_name: lastName,
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
         role: 'patient',
       });
       const user: User = {
         id: data.user_id,
-        email,
+        email: email.trim(),
         role: data.role as User['role'],
-        first_name: firstName,
-        last_name: lastName,
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
         full_name: data.full_name,
         is_active: true,
         created_at: new Date().toISOString(),
@@ -43,7 +57,10 @@ export default function RegisterPage() {
       toast.success('Welcome to Samarth!');
       navigate('/dashboard');
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Registration failed. Email might already be registered.');
+      const message = !err.response
+        ? 'Cannot reach the backend server. Please make sure it is running on http://localhost:8000.'
+        : err.response?.data?.detail || 'Registration failed. Email might already be registered.';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -56,9 +73,9 @@ export default function RegisterPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-900 flex">
-      {/* Left panel — solid brand blue */}
-      <div className="hidden lg:flex lg:w-1/2 bg-brand relative overflow-hidden">
+    <div className="min-h-screen bg-[#F8FAFC] flex">
+      {/* Left panel */}
+      <div className="hidden lg:flex lg:w-1/2 bg-navy relative overflow-hidden">
         <div className="absolute top-20 left-20 w-64 h-64 bg-white/5 rounded-full blur-3xl" />
         <div className="absolute bottom-20 right-20 w-48 h-48 bg-white/5 rounded-full blur-3xl" />
 
@@ -78,7 +95,7 @@ export default function RegisterPage() {
           <div className="flex flex-col gap-4">
             {features.map(({ Icon, text }) => (
               <div key={text} className="flex items-center gap-3 text-white/90">
-                <div className="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center flex-shrink-0">
+                <div className="w-8 h-8 rounded-lg bg-brand/30 flex items-center justify-center flex-shrink-0">
                   <Icon className="w-4 h-4 text-white" />
                 </div>
                 <span className="font-medium">{text}</span>
@@ -89,21 +106,21 @@ export default function RegisterPage() {
       </div>
 
       {/* Right panel */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-[#F8FAFC] dark:bg-slate-900">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-[#F8FAFC]">
         <div className="w-full max-w-md">
           {/* Mobile logo */}
           <div className="flex items-center gap-3 mb-8 lg:hidden">
             <img src="/logo.jpeg" alt="Samarth" className="w-10 h-10 rounded-full object-cover" />
-            <span className="text-2xl font-display font-bold text-[#0F172A] dark:text-white">Samarth</span>
+            <span className="text-2xl font-display font-bold text-[#0F172A]">Samarth</span>
           </div>
 
           <div className="mb-8">
-            <h2 className="text-3xl font-display font-bold text-[#0F172A] dark:text-white">Create your account</h2>
-            <p className="text-slate-500 dark:text-slate-400 mt-2">Get started with your rehabilitation program</p>
+            <h2 className="text-3xl font-display font-bold text-[#0F172A]">Create your account</h2>
+            <p className="text-slate-500 mt-2">Get started with your rehabilitation program</p>
           </div>
 
           {error && (
-            <div className="mb-6 flex items-center gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-400 text-sm">
+            <div className="mb-6 flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
               <AlertCircle className="w-5 h-5 flex-shrink-0" />
               <span>{error}</span>
             </div>
@@ -112,7 +129,7 @@ export default function RegisterPage() {
           <form onSubmit={handleRegister} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5">First name</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">First name</label>
                 <input
                   id="firstName"
                   type="text"
@@ -124,7 +141,7 @@ export default function RegisterPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5">Last name</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Last name</label>
                 <input
                   id="lastName"
                   type="text"
@@ -138,7 +155,7 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5">Email address</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Email address</label>
               <input
                 id="email"
                 type="email"
@@ -152,7 +169,7 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5">Password</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Password</label>
               <div className="relative">
                 <input
                   id="password"
@@ -167,12 +184,12 @@ export default function RegisterPage() {
                 <button
                   type="button"
                   onClick={() => setShowPass(!showPass)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-400 transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                 >
                   {showPass ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+              <p className="text-xs text-slate-500 mt-2">
                 Password must contain: uppercase, lowercase, number & special character (!@#$%)
               </p>
             </div>
@@ -195,7 +212,7 @@ export default function RegisterPage() {
             </button>
           </form>
 
-          <div className="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
+          <div className="mt-6 text-center text-sm text-slate-500">
             Already have an account?{' '}
             <Link to="/login" className="text-brand font-semibold hover:underline">
               Sign In

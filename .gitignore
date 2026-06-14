@@ -5,6 +5,7 @@ dist-ssr/
 *.local
 .eslintcache
 *.tsbuildinfo
+*.log
 
 # Python/Backend
 __pycache__/

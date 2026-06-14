@@ -64,7 +64,12 @@ export default function UploadSessionPage() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+      const selectedFile = e.target.files[0];
+      if (selectedFile.type.startsWith('video/')) {
+        setFile(selectedFile);
+      } else {
+        toast.error('Only video files are supported.');
+      }
     }
   };
 
@@ -163,10 +168,19 @@ export default function UploadSessionPage() {
                 className={`border-2 border-dashed rounded-3xl p-10 flex flex-col items-center justify-center transition-all ${
                   dragActive ? 'border-brand bg-brand-50' : 'border-slate-300 hover:border-slate-400 bg-slate-50'
                 }`}
+                onClick={() => !file && fileInputRef.current?.click()}
                 onDragEnter={handleDrag}
                 onDragLeave={handleDrag}
                 onDragOver={handleDrag}
                 onDrop={handleDrop}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (!file && (e.key === 'Enter' || e.key === ' ')) {
+                    e.preventDefault();
+                    fileInputRef.current?.click();
+                  }
+                }}
               >
                 <input
                   ref={fileInputRef}
@@ -186,7 +200,11 @@ export default function UploadSessionPage() {
                       <p className="text-xs text-slate-400 mt-1">{(file.size / (1024 * 1024)).toFixed(2)} MB</p>
                     </div>
                     <button
-                      onClick={() => setFile(null)}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setFile(null);
+                      }}
                       className="text-xs font-semibold text-red-500 hover:underline"
                     >
                       Remove file
@@ -199,7 +217,11 @@ export default function UploadSessionPage() {
                     </div>
                     <div>
                       <button
-                        onClick={() => fileInputRef.current?.click()}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          fileInputRef.current?.click();
+                        }}
                         className="text-brand font-bold hover:underline"
                       >
                         Click to upload

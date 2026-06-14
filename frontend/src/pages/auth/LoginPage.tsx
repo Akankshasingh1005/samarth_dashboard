@@ -20,10 +20,10 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      const data = await authApi.login(email, password);
+      const data = await authApi.login(email.trim(), password);
       const user: User = {
         id: data.user_id,
-        email,
+        email: email.trim(),
         role: data.role as User['role'],
         first_name: data.full_name.split(' ')[0],
         last_name: data.full_name.split(' ').slice(1).join(' '),
@@ -33,11 +33,13 @@ export default function LoginPage() {
       };
       setAuth(data, user);
       toast.success(`Welcome back, ${user.first_name}!`);
-      if (data.role === 'therapist') navigate('/therapist');
-      else if (data.role === 'admin') navigate('/admin');
+      if (data.role === 'therapist' || data.role === 'admin') navigate('/therapist/dashboard');
       else navigate('/dashboard');
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Login failed. Please check your credentials.');
+      const message = !err.response
+        ? 'Cannot reach the backend server. Please make sure it is running on http://localhost:8000.'
+        : err.response?.data?.detail || 'Login failed. Please check your credentials.';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -50,9 +52,9 @@ export default function LoginPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-900 flex">
-      {/* Left panel — solid brand blue */}
-      <div className="hidden lg:flex lg:w-1/2 bg-brand relative overflow-hidden">
+    <div className="min-h-screen bg-[#F8FAFC] flex">
+      {/* Left panel */}
+      <div className="hidden lg:flex lg:w-1/2 bg-navy relative overflow-hidden">
         {/* subtle tonal circles, same hue */}
         <div className="absolute top-20 left-20 w-64 h-64 bg-white/5 rounded-full blur-3xl" />
         <div className="absolute bottom-20 right-20 w-48 h-48 bg-white/5 rounded-full blur-3xl" />
@@ -74,7 +76,7 @@ export default function LoginPage() {
           <div className="flex flex-col gap-4">
             {features.map(({ Icon, text }) => (
               <div key={text} className="flex items-center gap-3 text-white/90">
-                <div className="w-8 h-8 rounded-lg bg-white/15 flex items-center justify-center flex-shrink-0">
+                <div className="w-8 h-8 rounded-lg bg-brand/30 flex items-center justify-center flex-shrink-0">
                   <Icon className="w-4 h-4 text-white" />
                 </div>
                 <span className="font-medium">{text}</span>
@@ -85,21 +87,21 @@ export default function LoginPage() {
       </div>
 
       {/* Right panel */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-[#F8FAFC] dark:bg-slate-900">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-[#F8FAFC]">
         <div className="w-full max-w-md">
           {/* Mobile logo */}
           <div className="flex items-center gap-3 mb-8 lg:hidden">
             <img src="/logo.jpeg" alt="Samarth" className="w-10 h-10 rounded-full object-cover" />
-            <span className="text-2xl font-display font-bold text-[#0F172A] dark:text-white">Samarth</span>
+            <span className="text-2xl font-display font-bold text-[#0F172A]">Samarth</span>
           </div>
 
           <div className="mb-8">
-            <h2 className="text-3xl font-display font-bold text-[#0F172A] dark:text-white">Welcome back</h2>
-            <p className="text-slate-500 dark:text-slate-400 mt-2">Sign in to your account to continue your recovery</p>
+            <h2 className="text-3xl font-display font-bold text-[#0F172A]">Welcome back</h2>
+            <p className="text-slate-500 mt-2">Sign in to your account to continue your recovery</p>
           </div>
 
           {error && (
-            <div className="mb-6 flex items-center gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-700 dark:text-red-400 text-sm">
+            <div className="mb-6 flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
               <AlertCircle className="w-5 h-5 flex-shrink-0" />
               <span>{error}</span>
             </div>
@@ -107,7 +109,7 @@ export default function LoginPage() {
 
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Email address</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Email address</label>
               <input
                 id="email"
                 type="email"
@@ -121,7 +123,7 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">Password</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Password</label>
               <div className="relative">
                 <input
                   id="password"
@@ -136,7 +138,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPass(!showPass)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-400 transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                 >
                   {showPass ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -161,7 +163,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
+          <div className="mt-6 text-center text-sm text-slate-500">
             Don't have an account?{' '}
             <Link to="/register" className="text-brand font-semibold hover:underline">
               Create one
