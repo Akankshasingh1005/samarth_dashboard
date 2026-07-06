@@ -1,0 +1,69 @@
+INFO:     Started server process [9992]
+INFO:     Waiting for application startup.
+2026-06-14 14:24:08.419 | INFO     | main:lifespan:22 - \U0001f331 Starting Samarth backend...
+2026-06-14 14:24:08.421 | INFO     | database:connect_db:17 - Connecting to MongoDB: samarth
+2026-06-14 14:24:11.692 | INFO     | database:connect_db:44 - \u2705 MongoDB connected and Beanie initialized
+2026-06-14 14:24:11.699 | INFO     | main:lifespan:30 - \u2705 PS1 pipeline mounted at: C:\Users\Akanksha Singh\OneDrive\Desktop\dashboard\pipeline
+2026-06-14 14:24:12.662 | INFO     | main:lifespan:36 - \u2705 Auto-seeded Day-1 exercises: Seeded 0 new exercises, updated existing, deleted 0 obsolete
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+2026-06-14 14:32:48.533 | INFO     | services.pose_engine.adapter:_init:63 - \u2705 PS1 PoseEngineAdapter initialized - path: C:\Users\Akanksha Singh\OneDrive\Desktop\dashboard\pipeline
+INFO: Created TensorFlow Lite XNNPACK delegate for CPU.
+W0000 00:00:1781427776.862056    3316 inference_feedback_manager.cc:121] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1781427776.928716    3316 inference_feedback_manager.cc:121] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1781427777.176439    1704 landmark_projection_calculator.cc:81] Using NORM_RECT without IMAGE_DIMENSIONS is only supported for the square ROI. Provide IMAGE_DIMENSIONS or use PROJECTION_MATRIX.
+C:\Users\Akanksha Singh\OneDrive\Desktop\dashboard\pipeline\modules\exporter.py:62: UserWarning: Starting a Matplotlib GUI outside of the main thread will likely fail.
+  plt.figure(figsize=(12, 6))
+C:\Users\Akanksha Singh\OneDrive\Desktop\dashboard\pipeline\modules\exporter.py:85: UserWarning: Starting a Matplotlib GUI outside of the main thread will likely fail.
+  plt.figure(figsize=(12, 5))
+2026-06-14 14:33:40.573 | ERROR    | services.pose_engine.adapter:process_video:340 - [PoseEngine] Batch processing failed: 'Exporter' object has no attribute 'generate_annotated_video'
+Traceback (most recent call last):
+  File "C:\Users\Akanksha Singh\OneDrive\Desktop\dashboard\backend\services\pose_engine\adapter.py", line 273, in process_video
+    ts_df, sum_df, video_summary = ps1_main.run_pipeline_on_video(
+                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        video_path=video_path,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    ...<5 lines>...
+        enhancer=enhancer,
+        ^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Akanksha Singh\OneDrive\Desktop\dashboard\pipeline\main.py", line 193, in run_pipeline_on_video
+    exporter.generate_annotated_video(
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Exporter' object has no attribute 'generate_annotated_video'
+
+INFO:     127.0.0.1:50332 - "WebSocket /ws/camera/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2YTJiYmViZDFhNGNhYmFhODVmODE1ZTIiLCJyb2xlIjoicGF0aWVudCIsImVtYWlsIjoiYjIzY20xMDA1QGdtYWlsLmNvbSIsImV4cCI6MTc4MTQzMjQzNCwidHlwZSI6ImFjY2VzcyJ9.id5dSaA5Z7j3NbY3yXQPE3Q00sq9LpPmbsrwO6R0dVM" [accepted]
+2026-06-14 14:52:05.905 | INFO     | ws_handlers.camera_ws:camera_validation_websocket:31 - [WS Camera] Connected: user=6a2bbebd1a4cabaa85f815e2
+W0000 00:00:1781428926.326286    5456 inference_feedback_manager.cc:121] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1781428926.395203    8000 inference_feedback_manager.cc:121] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+INFO:     connection open
+INFO:     127.0.0.1:52046 - "WebSocket /ws/camera/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2YTJiYmViZDFhNGNhYmFhODVmODE1ZTIiLCJyb2xlIjoicGF0aWVudCIsImVtYWlsIjoiYjIzY20xMDA1QGdtYWlsLmNvbSIsImV4cCI6MTc4MTQzMjQzNCwidHlwZSI6ImFjY2VzcyJ9.id5dSaA5Z7j3NbY3yXQPE3Q00sq9LpPmbsrwO6R0dVM" [accepted]
+2026-06-14 14:52:06.418 | INFO     | ws_handlers.camera_ws:camera_validation_websocket:31 - [WS Camera] Connected: user=6a2bbebd1a4cabaa85f815e2
+W0000 00:00:1781428926.818471   23016 inference_feedback_manager.cc:121] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1781428926.874686   23016 inference_feedback_manager.cc:121] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+INFO:     connection open
+INFO:     127.0.0.1:54674 - "WebSocket /ws/camera/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2YTJiYmViZDFhNGNhYmFhODVmODE1ZTIiLCJyb2xlIjoicGF0aWVudCIsImVtYWlsIjoiYjIzY20xMDA1QGdtYWlsLmNvbSIsImV4cCI6MTc4MTQyNzg2OSwidHlwZSI6ImFjY2VzcyJ9.MLgoJlyg3AZ-8J-ROJS0zxQM3_Ly_p3xc3frKRPo5-8" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     connection closed
+INFO:     127.0.0.1:64544 - "WebSocket /ws/camera/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2YTJiYmViZDFhNGNhYmFhODVmODE1ZTIiLCJyb2xlIjoicGF0aWVudCIsImVtYWlsIjoiYjIzY20xMDA1QGdtYWlsLmNvbSIsImV4cCI6MTc4MTQyNzg2OSwidHlwZSI6ImFjY2VzcyJ9.MLgoJlyg3AZ-8J-ROJS0zxQM3_Ly_p3xc3frKRPo5-8" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     connection closed
+2026-06-14 14:52:21.413 | INFO     | ws_handlers.camera_ws:camera_validation_websocket:81 - [WS Camera] Timeout
+INFO:     connection closed
+2026-06-14 14:52:23.899 | INFO     | ws_handlers.camera_ws:camera_validation_websocket:81 - [WS Camera] Timeout
+INFO:     connection closed
+INFO:     127.0.0.1:62976 - "WebSocket /ws/session/6a2e72bda50275b9affceed6/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2YTJiYmViZDFhNGNhYmFhODVmODE1ZTIiLCJyb2xlIjoicGF0aWVudCIsImVtYWlsIjoiYjIzY20xMDA1QGdtYWlsLmNvbSIsImV4cCI6MTc4MTQyNzg2OSwidHlwZSI6ImFjY2VzcyJ9.MLgoJlyg3AZ-8J-ROJS0zxQM3_Ly_p3xc3frKRPo5-8" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     connection closed
+INFO:     127.0.0.1:52851 - "WebSocket /ws/session/6a2e72bda50275b9affceed6/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2YTJiYmViZDFhNGNhYmFhODVmODE1ZTIiLCJyb2xlIjoicGF0aWVudCIsImVtYWlsIjoiYjIzY20xMDA1QGdtYWlsLmNvbSIsImV4cCI6MTc4MTQyNzg2OSwidHlwZSI6ImFjY2VzcyJ9.MLgoJlyg3AZ-8J-ROJS0zxQM3_Ly_p3xc3frKRPo5-8" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     connection closed
+INFO:     127.0.0.1:53918 - "WebSocket /ws/session/6a2e72bda50275b9affceed6/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2YTJiYmViZDFhNGNhYmFhODVmODE1ZTIiLCJyb2xlIjoicGF0aWVudCIsImVtYWlsIjoiYjIzY20xMDA1QGdtYWlsLmNvbSIsImV4cCI6MTc4MTQzMjU2MywidHlwZSI6ImFjY2VzcyJ9.SnEwupruhdueeLqqQsK_IV0t_1Gv4SIMWr6K_CJZGnc" [accepted]
+2026-06-14 14:52:43.968 | INFO     | ws_handlers.session_ws:live_session_websocket:39 - [WS Session] Client connected: session=6a2e72bda50275b9affceed6 user=6a2bbebd1a4cabaa85f815e2
+W0000 00:00:1781428964.340949    6204 inference_feedback_manager.cc:121] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1781428964.403162    7712 inference_feedback_manager.cc:121] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+INFO:     connection open
+INFO:     connection closed
+2026-06-14 14:52:48.015 | INFO     | ws_handlers.session_ws:_save_live_session_data:237 - [WS Session] AngleData already exists for session=6a2e72bda50275b9affceed6, skipping save
+2026-06-14 14:52:48.015 | INFO     | ws_handlers.session_ws:live_session_websocket:205 - [WS Session] Closed - session=6a2e72bda50275b9affceed6, total_frames=29, reps=1

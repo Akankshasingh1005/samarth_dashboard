@@ -1,0 +1,17 @@
+
+> samarth-frontend@1.0.0 dev
+> vite --host 127.0.0.1 --port 5173
+
+
+  [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m461[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://127.0.0.1:[1m5173[22m/[39m
+[2m2:20:52 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/auth/LoginPage.tsx, /src/styles/globals.css[22m
+[2m2:20:53 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/auth/RegisterPage.tsx, /src/styles/globals.css[22m
+[2m2:27:57 pm[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mtailwind.config.ts[22m
+[2m2:28:34 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles/globals.css[22m
+[2m2:28:40 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles/globals.css[22m
+[2m2:28:51 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/styles/globals.css[22m
+[2m2:29:19 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/Layout.tsx, /src/styles/globals.css[22m
+[2m2:29:36 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/auth/LoginPage.tsx, /src/styles/globals.css[22m
+[2m2:29:57 pm[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/auth/RegisterPage.tsx, /src/styles/globals.css[22m

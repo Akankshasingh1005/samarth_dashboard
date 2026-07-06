@@ -1,0 +1,177 @@
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                   SAMARTH - QUICK START GUIDE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SAMARTH is a physiotherapy rehabilitation platform with:
+  • Backend (Python/FastAPI) running on PORT 8000
+  • Frontend (React/TypeScript) running on PORT 5173
+
+You need BOTH running simultaneously in separate terminals.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                    ONE-TIME SETUP (First time only)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STEP 1: Install Python (3.10+)
+  1. Download from: https://www.python.org/downloads/
+  2. CHECK "Add Python to PATH" during installation
+  3. Verify: Open terminal → type "python --version"
+
+STEP 2: Install Node.js (LTS version)
+  1. Download from: https://nodejs.org/
+  2. Verify: Open terminal → type "node --version"
+
+STEP 3: Install Backend Dependencies
+  1. Open terminal in dashboard folder
+  2. Create virtual environment:
+     python -m venv .venv
+  3. Activate it:
+     .venv\Scripts\activate
+  4. Install packages:
+     pip install -r backend\requirements.txt
+  (This takes 5-10 minutes, be patient)
+
+STEP 4: Install Frontend Dependencies
+  1. Open terminal in frontend folder
+  2. Install packages:
+     npm install
+  (This takes 2-3 minutes)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                 HOW TO RUN (Every time you want to start)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+IMPORTANT: Open TWO separate terminal windows!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TERMINAL 1 - Start Backend
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Navigate to backend folder:
+   cd "C:\Users\Akanksha Singh\OneDrive\Desktop\dashboard\backend"
+
+2. Activate Python virtual environment:
+   ..\..\..\.venv\Scripts\activate
+
+3. Start backend server:
+   python -m uvicorn main:app --reload --env-file ".env"
+
+You should see: "Uvicorn running on http://0.0.0.0:8000"
+
+Leave this terminal OPEN.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TERMINAL 2 - Start Frontend
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Navigate to frontend folder:
+   cd "C:\Users\Akanksha Singh\OneDrive\Desktop\dashboard\frontend"
+
+2. Start frontend dev server:
+   npm run dev
+
+You should see: "Local: http://localhost:5173"
+
+Leave this terminal OPEN.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OPEN IN BROWSER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Open your browser and go to:
+   http://localhost:5173
+
+You will see the SAMARTH login page.
+Register a new account or log in.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                            USEFUL LINKS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+App:                   http://localhost:5173
+API Docs:              http://localhost:8000/docs
+API Health Check:      http://localhost:8000/health
+Alternative API Docs:  http://localhost:8000/redoc
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                           HOW TO STOP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+In each terminal window, press: Ctrl + C
+
+This will stop the servers. Close both terminals when done.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                        TROUBLESHOOTING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+❌ "uvicorn is not recognized" or "python is not recognized"
+   → Make sure the virtual environment is activated (.venv\Scripts\activate)
+
+❌ "npm is not recognized"
+   → Install Node.js from https://nodejs.org/
+
+❌ "MongoDB connection failed"
+   → Check your internet connection
+   → Check that backend/.env has the correct MONGO_URI
+
+❌ Website shows blank page
+   → Make sure BOTH backend AND frontend terminals show "running"
+   → Check Terminal 1 for red error messages
+
+❌ "Port 8000 is already in use"
+   → Another program is using that port
+   → Kill it or change port: --port 8001
+
+❌ Camera doesn't work in live session
+   → Allow camera access when browser asks
+   → Use Chrome or Edge for best support
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                       FOLDER STRUCTURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+dashboard/
+├── backend/              ← Python FastAPI server
+│   ├── main.py          ← Starts backend
+│   ├── api/             ← All routes (login, sessions, etc.)
+│   ├── models/          ← Database schemas
+│   ├── services/        ← Business logic
+│   └── .env             ← Settings (keep secret!)
+│
+├── frontend/            ← React website
+│   ├── src/             ← All code
+│   │   ├── pages/       ← Page components
+│   │   ├── components/  ← Reusable parts
+│   │   └── api/         ← Frontend API calls
+│   └── public/          ← Static files
+│
+└── pipeline/            ← AI Computer Vision (DO NOT EDIT)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                    QUICK REFERENCE - Commands
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Start Backend:
+  cd backend && ..\..\..\.venv\Scripts\activate && python -m uvicorn main:app --reload --env-file ".env"
+
+Start Frontend:
+  cd frontend && npm run dev
+
+Check Backend Health:
+  Open browser → http://localhost:8000/health
+
+View All API Endpoints:
+  Open browser → http://localhost:8000/docs
+
+Open the App:
+  Open browser → http://localhost:5173
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
