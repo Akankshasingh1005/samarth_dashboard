@@ -454,6 +454,7 @@ All REST endpoints are prefixed with `/api/v1`. Full interactive documentation i
 | `POST` | `/sessions/` | Create a new exercise session |
 | `GET` | `/sessions/` | List sessions for authenticated patient |
 | `GET` | `/sessions/{id}` | Get session details |
+| `DELETE` | `/sessions/{id}` | Delete session and associated data |
 | `PUT` | `/sessions/{id}/complete` | Mark session as completed |
 | `POST` | `/sessions/{id}/upload-video` | Upload recorded video for PS1 batch analysis |
 | `GET` | `/sessions/{id}/angle-data` | Retrieve per-frame angle timeseries |
@@ -648,7 +649,8 @@ Or simply click **Start Exercise** on the patient dashboard - the UI auto-seeds 
 | `PS1_ENHANCE` | No | `true` | Enable video enhancement (batch) |
 | `PS2_MODEL_PATH` | No | `""` (empty) | Path to trained RehabNet PS2 model file |
 | `PS2_USE_REAL_MODEL` | No | `false` | Auto-set to `true` when `PS2_MODEL_PATH` points to an existing file |
-| `PS3_SENSOR_PORT` | No | `""` | Serial port for BLE sensor |
+| `PS3_ESP_URL` | No | `""` | Base HTTP URL for the ESP32 bridge hub (e.g. http://10.81.192.229) |
+| `PS3_SENSOR_PORT` | No | `""` | Serial port for BLE sensor (fallback) |
 | `PS3_USE_REAL_SENSOR` | No | `false` | Enable real sensor reads |
 | `PS3_BAUD_RATE` | No | `115200` | Serial baud rate |
 | `WEASYPRINT_ENABLED` | No | `true` | Enable PDF report generation |
@@ -704,11 +706,56 @@ def analyze_rep(self, angle_timeseries: dict, rep_metadata: dict) -> dict:
 
 The `PS2_USE_REAL_MODEL` flag is **automatically set** to `true` when `PS2_MODEL_PATH` points to an existing file - no other config change needed.
 
-### PS3 - Your Wearable Sensor
+### PS3 - Wearable Sensor Hub (ESP32 Integration)
 
-1. Implement your BLE/serial reader in `backend/services/sensor_hub/real_sensor.py`
-2. The sensor HUD frontend component polls `GET /api/v1/sensor/status` and `GET /api/v1/sensor/data` at 2 Hz
-3. Set `PS3_USE_REAL_SENSOR=true` and `PS3_SENSOR_PORT=/dev/ttyUSB0` (or `COM3` on Windows)
+SAMARTH is integrated with an ESP32 bridge hub which aggregates stance phase, foot force, and IMU joint angle readings from leg actuators and handles closed-loop motor commands.
+
+#### 1. Configuration & Connection
+1. Set the following environment variables in `backend/.env`:
+   ```env
+   PS3_ESP_URL=http://<ESP32_IP_ADDRESS>
+   PS3_USE_REAL_SENSOR=true
+   PS3_POLL_INTERVAL_MS=100
+   ```
+2. On boot, if the ESP32 bridge unit cannot find the saved AP (e.g. mobile hotspot), it times out in 8 seconds and hosts a captive setup portal named `Samarth-ESP32-Setup` (IP: `192.168.4.1`) for local Wi-Fi provisioning.
+
+#### 2. Backend Polling Daemon
+To prevent network latency from blocking the live pose evaluation loop, the backend `RealSensorHub` launches a background daemon thread upon connection. This thread continually queries the ESP32 at `/data` and caches the state, allowing the live WebSocket pipeline to fetch sensor telemetry in `0ms`.
+
+#### 3. ESP32 HTTP API Contract
+
+* **`GET /data`**: Returns real-time telemetry frame:
+  ```json
+  {
+    "device_id": "ESP32-EXO",
+    "bat": 88,                    // Battery percentage
+    "cal": "calibrated",          // Calibration status
+    "force": 125.4,               // Foot pressure load in Newtons
+    "stance": true,               // Stance phase (true) or Swing (false)
+    "angles": {
+      "knee": 45.2,               // Active knee joint angle (deg)
+      "hip": 12.8                 // Hip joint angle (deg)
+    },
+    "motors": {
+      "knee_pwm": 150,            // Actuator speed control (0-255)
+      "knee_dir": 1,              // Actuation direction (1/0)
+      "hip_pwm": 0,
+      "hip_dir": 0
+    }
+  }
+  ```
+
+* **`GET /status`**: Returns bridge connection state, battery, and calibration state.
+* **`POST /calibrate`**: Dispatches a homing calibration command to the actuators.
+* **`POST /command`**: Dispatches motor configuration mode changes:
+  ```json
+  {
+    "cmd": "set_mode",
+    "mode_id": 2,                 // Assistive (1), Resistive (2), Passive (3)
+    "mode_name": "Resistive",
+    "target_torque": 15.5         // Custom actuation torque limit in Nm
+  }
+  ```
 
 ---
 

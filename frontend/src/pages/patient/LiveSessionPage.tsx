@@ -304,7 +304,7 @@ export default function LiveSessionPage() {
               readyToSendRef.current = true; // Re-enable if blob failed
             }
           }, 'image/jpeg', 0.6);
-        }, 100); // 10fps max, but throttled by readyToSend
+        }, 66); // 15fps max, but throttled by readyToSend
       };
 
       ws.onmessage = (event) => {
@@ -327,6 +327,12 @@ export default function LiveSessionPage() {
               setLastModeCommand(data.rep_result.mode_command);
             }
 
+            if (data.rep_count !== undefined && data.rep_count !== repCountRef.current) {
+              repCountRef.current = data.rep_count;
+              setRepCount(data.rep_count);
+              handleRepCompleted(data.rep_count, data.rep_result);
+            }
+
             // Always clear the overlay canvas first to prevent stale skeleton persistence
             const overlay = overlayCanvasRef.current;
             if (overlay) {
@@ -337,11 +343,6 @@ export default function LiveSessionPage() {
             // Render landmarks and angles whenever landmarks are detected, exactly like validation page
             if (data.landmarks && Object.keys(data.landmarks).length > 0) {
               if (data.angles) setAngles(data.angles);
-              if (data.rep_count !== undefined && data.rep_count !== repCountRef.current) {
-                repCountRef.current = data.rep_count;
-                setRepCount(data.rep_count);
-                handleRepCompleted(data.rep_count, data.rep_result);
-              }
               // Draw skeleton overlay using received landmarks
               landmarksRef.current = data.landmarks;
               if (overlay) {
@@ -357,8 +358,13 @@ export default function LiveSessionPage() {
                 }
               }
             } else {
-              // Reset angles display if no landmarks returned
-              setAngles({ left_knee: 0, right_knee: 0, left_hip: 0, right_hip: 0, left_ankle: 0, right_ankle: 0 });
+              // Reset angles display if no landmarks returned, UNLESS exoskeleton sensor is connected
+              const hasExoSensor = data.sensor_data?.connected || (data.angles && (data.angles.left_knee > 0 || data.angles.left_hip > 0));
+              if (hasExoSensor && data.angles) {
+                setAngles(data.angles);
+              } else {
+                setAngles({ left_knee: 0, right_knee: 0, left_hip: 0, right_hip: 0, left_ankle: 0, right_ankle: 0 });
+              }
             }
           }
         } catch {}
@@ -461,13 +467,50 @@ export default function LiveSessionPage() {
       keepAliveRef.current = null;
     }
 
-    // 2. Send 'end' to WS (fire-and-forget — don't wait for ACK)
+    // 2. Send 'end' to WS and WAIT for 'end_ack' before closing.
+    // The backend's finally block runs _save_live_session_data after the
+    // end_ack is sent and the loop breaks. We must wait for the WS to close
+    // (meaning the backend finished its finally block) to ensure all data
+    // is saved before we call complete_session.
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       try {
-        wsRef.current.send(JSON.stringify({ type: 'end' }));
-      } catch { /* ignore send errors */ }
+        await new Promise<void>((resolve) => {
+          const ws = wsRef.current!;
+          const timeout = setTimeout(() => {
+            // Fallback: if no end_ack after 3 seconds, proceed anyway
+            resolve();
+          }, 3000);
+
+          // Listen for end_ack or WS close (whichever comes first)
+          const origOnMessage = ws.onmessage;
+          const origOnClose = ws.onclose;
+
+          ws.onmessage = (event) => {
+            try {
+              const data = JSON.parse(event.data);
+              if (data.type === 'end_ack') {
+                clearTimeout(timeout);
+                // Wait a brief moment for the backend's finally block to complete
+                // after the break from the loop (save to DB happens in finally)
+                setTimeout(() => resolve(), 300);
+                return;
+              }
+            } catch { /* ignore parse errors */ }
+            // Forward to original handler for other messages
+            if (origOnMessage) (origOnMessage as any).call(ws, event);
+          };
+
+          ws.onclose = (event) => {
+            clearTimeout(timeout);
+            resolve();
+            if (origOnClose) (origOnClose as any).call(ws, event);
+          };
+
+          ws.send(JSON.stringify({ type: 'end' }));
+        });
+      } catch { /* ignore errors during end sequence */ }
       wsEndedRef.current = true;
-      wsRef.current.close();
+      wsRef.current?.close();
     } else {
       wsEndedRef.current = true;
     }
@@ -476,21 +519,15 @@ export default function LiveSessionPage() {
     stopCamera();
 
     // 4. Complete session in backend (await so summary page has latest data).
-    // Give the WS handler's finally block a 500ms head-start before the
-    // complete endpoint starts polling for AngleData.
     const sid = sessionId!;
     const finalSeconds = timerSecondsRef.current;
     try {
-      await new Promise((r) => setTimeout(r, 500));
       await sessionApi.complete(sid, undefined, finalSeconds);
     } catch (err) {
       console.error("Failed to complete session:", err);
     }
 
-    // 5. Navigate to summary — DO NOT resetSession() here.
-    // SessionSummaryPage fetches all data from the backend API, not the Zustand store.
-    // Resetting before navigation doesn't help the summary page and can mask timing bugs.
-    // The store will be reset naturally when the next session starts via startTimer().
+    // 5. Navigate to summary
     navigate(`/session/summary/${sid}`);
   };
 

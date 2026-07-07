@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Activity, Calendar, Trophy, ArrowRight,
-  Plus, Repeat, Target, BarChart3, Zap
+  Plus, Repeat, Target, BarChart3, Zap, Scale, Trash2
 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
-import { sessionApi, sensorApi } from '@/api';
+import { sessionApi, sensorApi, analyticsApi } from '@/api';
 import type { Session, SensorReading } from '@/types';
 
 function StatCard({ label, value, subtitle, icon: Icon, color }: {
@@ -30,38 +30,74 @@ export default function PatientDashboard() {
   const { user } = useAuthStore();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [sensorStatus, setSensorStatus] = useState<SensorReading | null>(null);
+  const [analytics, setAnalytics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [sess, sens] = await Promise.all([
+        const [sess, sens, summary] = await Promise.all([
           sessionApi.list(5, 0),
           sensorApi.status().catch(() => null),
+          user?.id ? analyticsApi.summary(user.id).catch(() => null) : null,
         ]);
         setSessions(sess);
         setSensorStatus(sens);
+        setAnalytics(summary);
       } finally {
         setLoading(false);
       }
     };
     load();
-  }, []);
+  }, [user]);
 
-  const completedSessions = sessions.filter(s => s.status === 'completed');
-  const totalReps = completedSessions.reduce((a, s) => a + s.total_reps, 0);
-  const avgROM = completedSessions.length
-    ? completedSessions.reduce((a, s) => a + (s.avg_left_rom + s.avg_right_rom) / 2, 0) / completedSessions.length
-    : 0;
-  const avgScore = completedSessions.filter(s => s.session_score).length
-    ? completedSessions.reduce((a, s) => a + (s.session_score ?? 0), 0) / completedSessions.filter(s => s.session_score).length
-    : 0;
+  // Poll sensor status every 3 seconds to update the connectivity widget dynamically on the home page
+  useEffect(() => {
+    let active = true;
+    const poll = async () => {
+      try {
+        const sens = await sensorApi.status().catch(() => null);
+        if (active && sens) setSensorStatus(sens);
+      } catch (err) {
+        console.error('Failed to poll sensor status:', err);
+      }
+    };
+    const interval = setInterval(poll, 3000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   const timeOfDay = () => {
     const h = new Date().getHours();
     if (h < 12) return 'Good morning';
     if (h < 17) return 'Good afternoon';
     return 'Good evening';
+  };
+
+  const completedCount = analytics?.completed_sessions ?? 0;
+  const avgSymmetry = analytics?.avg_symmetry ?? 0;
+  const avgROM = analytics ? ((analytics.avg_left_rom + analytics.avg_right_rom) / 2) : 0;
+  const avgScore = analytics?.avg_session_score ?? 0;
+
+  const handleDeleteSession = async (e: React.MouseEvent, sessionId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!window.confirm("Are you sure you want to delete this session and all of its data? This action cannot be undone.")) {
+      return;
+    }
+    try {
+      await sessionApi.delete(sessionId);
+      setSessions(prev => prev.filter(s => s.id !== sessionId));
+      if (user?.id) {
+        const summary = await analyticsApi.summary(user.id).catch(() => null);
+        setAnalytics(summary);
+      }
+    } catch (err) {
+      console.error("Failed to delete session:", err);
+      alert("Failed to delete session. Please try again.");
+    }
   };
 
   return (
@@ -107,10 +143,10 @@ export default function PatientDashboard() {
 
         {/* Stats grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <StatCard label="Sessions" value={completedSessions.length} subtitle="Completed" icon={Calendar} color="bg-brand" />
-          <StatCard label="Total Reps" value={totalReps} subtitle="All sessions" icon={Repeat} color="bg-accent" />
+          <StatCard label="Sessions" value={completedCount} subtitle="Completed" icon={Calendar} color="bg-brand" />
+          <StatCard label="Symmetry" value={`${avgSymmetry.toFixed(0)}%`} subtitle="Bilateral Balance" icon={Scale} color="bg-accent" />
           <StatCard label="Avg ROM" value={`${avgROM.toFixed(1)}°`} subtitle="Left + Right" icon={Target} color="bg-purple-500" />
-          <StatCard label="Avg Score" value={`${(avgScore * 100).toFixed(0)}%`} subtitle="Quality" icon={Trophy} color="bg-amber-500" />
+          <StatCard label="Avg Score" value={`${avgScore.toFixed(0)}%`} subtitle="Quality" icon={Trophy} color="bg-amber-500" />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -159,6 +195,14 @@ export default function PatientDashboard() {
                       <span className={session.status === 'completed' ? 'badge-success' : 'badge-warning'}>
                         {session.status === 'completed' ? 'Completed' : session.status === 'in_progress' ? 'Not Completed' : session.status}
                       </span>
+                      <button
+                        onClick={(e) => handleDeleteSession(e, session.id)}
+                        className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50/50 transition-colors ml-1 z-10"
+                        title="Delete Session"
+                        id={`delete-btn-${session.id}`}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                       <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-brand transition-colors" />
                     </div>
                   </Link>

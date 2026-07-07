@@ -337,7 +337,8 @@ async def live_session_websocket(websocket: WebSocket, session_id: str, token: s
             if frame_index >= 5:
                 elapsed = time.time() - frame_start_time
                 if elapsed > 0:
-                    fps_estimate = frame_index / elapsed
+                    raw_fps = frame_index / elapsed
+                    fps_estimate = max(5.0, min(15.0, raw_fps))
 
     except asyncio.TimeoutError:
         logger.warning(f"[WS Session] Keep-alive timeout (5 min no data) - session={session_id}")
@@ -410,9 +411,10 @@ async def _save_live_session_data(
         logger.info(f"[WS Session] Too few frames ({frame_count}) to save data for session={session_id}")
         return
 
-    # Estimate FPS from actual timing
+    # Estimate FPS from actual timing, but clamp to sensible range to handle pauses/delays
     elapsed = time.time() - start_time
-    fps = frame_count / max(elapsed, 1.0)
+    raw_fps = frame_count / max(elapsed, 1.0)
+    fps = max(5.0, min(15.0, raw_fps))
 
     # Check if AngleData already exists
     existing = await AngleData.find_one(AngleData.session_id == PydanticObjectId(session_id))
@@ -538,8 +540,10 @@ async def _save_live_session_data(
     peak_force = max(ps3_foot_forces) if ps3_foot_forces else 0.0
 
     # Update session with real results using atomic update to avoid race conditions
+    duration = max(10.0, time.time() - start_time)
     update_fields = {
         "total_reps": rep_count,
+        "duration_seconds": duration,
         "ps1_processed": True,
         "updated_at": datetime.utcnow(),
         "ps3_connected": ps3_connected,

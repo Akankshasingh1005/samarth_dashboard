@@ -80,6 +80,10 @@ export const sessionApi = {
     const res = await apiClient.get(`/sessions/${sessionId}/processing-status`);
     return res.data;
   },
+  delete: async (sessionId: string) => {
+    const res = await apiClient.delete(`/sessions/${sessionId}`);
+    return res.data;
+  },
 };
 
 export const analyticsApi = {

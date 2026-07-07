@@ -213,6 +213,38 @@ async def get_session(session_id: str, current_user: User = Depends(get_current_
     return _to_out(session)
 
 
+@router.delete("/{session_id}")
+async def delete_session(session_id: str, current_user: User = Depends(get_current_user)):
+    """Delete a session, its associated AngleData, and any uploaded videos."""
+    session = await Session.get(PydanticObjectId(session_id))
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+        
+    # Check ownership if the user is a patient
+    if current_user.role == "patient":
+        from models.patient import Patient
+        patient = await Patient.find_one(Patient.user_id == current_user.id)
+        if not patient or session.patient_id != patient.id:
+            raise HTTPException(status_code=403, detail="You do not have access to delete this session")
+            
+    # Delete associated video file if local
+    if session.video_url and not session.video_url.startswith("http"):
+        # Local video
+        video_path = Path(session.video_url)
+        if video_path.exists():
+            try:
+                os.remove(video_path)
+            except Exception:
+                pass
+                
+    # Delete associated DB records
+    await session.delete()
+    await AngleData.find(AngleData.session_id == PydanticObjectId(session_id)).delete()
+    await FeedbackEvent.find(FeedbackEvent.session_id == PydanticObjectId(session_id)).delete()
+    
+    return {"success": True, "message": "Session and all associated data deleted successfully"}
+
+
 @router.get("/{session_id}/processing-status")
 async def get_processing_status(session_id: str, current_user: User = Depends(get_current_user)):
     """Returns the current pipeline processing status for upload sessions."""
@@ -254,23 +286,29 @@ async def complete_session(
 ):
     session = await _verify_session_ownership(session_id, current_user)
 
-    # Check if real pipeline data already exists (from WebSocket handler or batch processing)
+    # For live sessions, wait for the WS handler's _save_live_session_data to finish
+    # writing AngleData before we finalize. The WS handler is the authoritative source
+    # for reps, scores, symmetry, etc.
     existing_data = await AngleData.find_one(AngleData.session_id == session.id)
     if not existing_data and session.mode == "live":
-        # Allow up to 6 seconds for WS handler to save data (was 2s which caused race conditions)
-        for _ in range(15):
+        # Allow up to 8 seconds for WS handler to save data
+        for _ in range(20):
             await asyncio.sleep(0.4)
             existing_data = await AngleData.find_one(AngleData.session_id == session.id)
             if existing_data:
                 break
 
-    # Re-fetch session to get the latest updates saved by WS connection handler
+    # Re-fetch session to get the latest updates saved by WS handler's $set
     db_session = await Session.get(session.id)
     if not db_session:
         raise HTTPException(status_code=404, detail="Session not found")
 
     end_time = datetime.utcnow()
-    if duration_seconds is not None and duration_seconds > 0:
+    # For duration: prefer the WS handler's value (already saved), then the
+    # frontend-provided value, then compute from start_time
+    if db_session.duration_seconds and db_session.duration_seconds > 0:
+        calculated_duration = db_session.duration_seconds
+    elif duration_seconds is not None and duration_seconds > 0:
         calculated_duration = duration_seconds
     elif db_session.start_time:
         start_naive = db_session.start_time.replace(tzinfo=None)
@@ -279,6 +317,10 @@ async def complete_session(
     else:
         calculated_duration = 10.0
 
+    # Core completion fields — this is all complete_session needs to set.
+    # The WS handler's _save_live_session_data already wrote total_reps,
+    # session_score, quality_score, quality_trend, symmetry_score, avg_left_rom,
+    # avg_right_rom, ps1_processed, ps2_processed, and PS3 fields.
     update_fields = {
         "status": "completed",
         "end_time": end_time,
@@ -288,23 +330,26 @@ async def complete_session(
     if notes:
         update_fields["notes"] = notes
 
-    if existing_data:
-        # Populate session summary from the real AngleData if not already processed
-        if not db_session.ps1_processed:
-            reps = existing_data.repetitions
-            update_fields["total_reps"] = len(reps)
-            update_fields["ps1_processed"] = True
+    # Safety net: if the WS handler's $set didn't land (e.g. crashed before
+    # saving to the session document), backfill from AngleData as a last resort.
+    if existing_data and not db_session.ps1_processed:
+        from loguru import logger
+        logger.info(f"Backfilling session {session_id} from AngleData (WS handler didn't update session)")
 
-            if reps:
-                avg_left = sum(r.rom for r in reps) / len(reps)
-                update_fields["avg_left_rom"] = avg_left
-                update_fields["avg_right_rom"] = avg_left * 0.98
+        reps = existing_data.repetitions
+        update_fields["total_reps"] = len(reps)
+        update_fields["ps1_processed"] = True
 
-            knee_sym = existing_data.symmetry.get("left_knee")
-            if knee_sym:
-                update_fields["symmetry_score"] = knee_sym.symmetry_score_percentage
+        if reps:
+            avg_left = sum(r.rom for r in reps) / len(reps)
+            update_fields["avg_left_rom"] = avg_left
+            update_fields["avg_right_rom"] = avg_left * 0.98
 
-        if existing_data.ps2_rep_results and not db_session.ps2_processed:
+        knee_sym = existing_data.symmetry.get("left_knee")
+        if knee_sym:
+            update_fields["symmetry_score"] = knee_sym.symmetry_score_percentage
+
+        if existing_data.ps2_rep_results:
             update_fields["ps2_processed"] = True
             rep_scores = []
             for r in existing_data.ps2_rep_results:
@@ -326,7 +371,7 @@ async def complete_session(
                 else:
                     update_fields["quality_trend"] = "stable"
 
-    elif db_session.mode == "live":
+    elif not existing_data and db_session.mode == "live":
         from loguru import logger
         logger.warning(f"No AngleData found for live session {session_id}. Completing session anyway.")
 

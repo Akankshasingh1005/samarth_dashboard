@@ -50,6 +50,8 @@ class RealSensorHub:
         self._heartbeat_timeout = 10.0
         self._reconnect_interval = 5.0
         self._last_connect_attempt = 0.0
+        self._thread = None
+        self._stop_event = None
 
     @property
     def is_connected(self) -> bool:
@@ -63,9 +65,53 @@ class RealSensorHub:
     def last_command(self) -> Optional[Dict]:
         return self._last_command
 
+    def _background_poll_loop(self):
+        import httpx
+        logger.info(f"[PS3] Background thread started for ESP32 at {self._esp_url}")
+        
+        last_retry = 0.0
+        # Reuse Client to leverage HTTP connection pooling (keep-alive)
+        with httpx.Client(timeout=1.0) as client:
+            while not self._stop_event.is_set():
+                if not self._connected:
+                    # Attempt connection in background
+                    now = time.time()
+                    if now - last_retry >= self._reconnect_interval:
+                        last_retry = now
+                        self._last_connect_attempt = now
+                        try:
+                            resp = client.get(f"{self._esp_url}/status")
+                            if resp.status_code == 200:
+                                data = resp.json()
+                                self._device_id = data.get("device_id", "ESP32-EXO")
+                                self._calibration_status = data.get("calibration_status", "uncalibrated")
+                                self._battery_percent = data.get("battery_percent", data.get("bat", 100))
+                                self._connected = True
+                                self._last_data_time = time.time()
+                                logger.info(f"[PS3] Connected to ESP32 in background thread at {self._esp_url}")
+                        except Exception:
+                            pass
+                
+                if self._connected:
+                    try:
+                        resp = client.get(f"{self._esp_url}/data")
+                        if resp.status_code == 200:
+                            raw = resp.json()
+                            self._latest_exo = self._parse_exo_data(raw)
+                            self._latest_reading = self._build_reading()
+                            self._last_data_time = time.time()
+                    except Exception as e:
+                        logger.debug(f"[PS3] Background poll failed: {e}")
+                        # Mark disconnected if heartbeat elapsed
+                        if time.time() - self._last_data_time > self._heartbeat_timeout:
+                            self._connected = False
+                            
+                time.sleep(self._poll_interval)
+        logger.info("[PS3] Background thread stopped")
+
     def connect(self, port: str = "") -> dict:
         """
-        Connect to ESP32 hardware.
+        Connect to ESP32 hardware and start background polling thread.
         `port` parameter accepts URL for compatibility.
         """
         url = port if port.startswith("http") else self._esp_url
@@ -78,7 +124,6 @@ class RealSensorHub:
         try:
             import httpx
             with httpx.Client(timeout=1.5) as client:
-                # Try /status first, fall back to /data
                 try:
                     resp = client.get(f"{self._esp_url}/status")
                     if resp.status_code == 200:
@@ -89,17 +134,23 @@ class RealSensorHub:
                 except Exception:
                     pass
 
-                # Verify we can get data
                 resp = client.get(f"{self._esp_url}/data")
                 if resp.status_code == 200:
                     self._connected = True
                     self._last_data_time = time.time()
                     if not self._device_id:
                         self._device_id = "ESP32-EXO"
-                    # Parse initial data
                     raw = resp.json()
                     self._latest_exo = self._parse_exo_data(raw)
                     self._latest_reading = self._build_reading()
+                    
+                    # Start background thread if not already running
+                    if self._thread is None or not self._thread.is_alive():
+                        import threading
+                        self._stop_event = threading.Event()
+                        self._thread = threading.Thread(target=self._background_poll_loop, daemon=True)
+                        self._thread.start()
+                        
                     logger.info(f"[PS3] Connected to ESP32 exoskeleton at {self._esp_url}")
                     return {"success": True, "message": f"Connected to {self._device_id}", "device_id": self._device_id}
                 else:
@@ -111,8 +162,11 @@ class RealSensorHub:
             return {"success": False, "message": f"Cannot reach ESP32 at {self._esp_url}: {e}"}
 
     def disconnect(self) -> dict:
-        """Disconnect from ESP32 hardware."""
+        """Disconnect from ESP32 hardware and stop background thread."""
+        if self._stop_event:
+            self._stop_event.set()
         self._connected = False
+        self._thread = None
         logger.info("[PS3] Disconnected from ESP32 exoskeleton")
         return {"success": True, "message": "Disconnected from ESP32"}
 
@@ -123,63 +177,34 @@ class RealSensorHub:
             self._connected = False
             
         if not self._connected:
-            now = time.time()
-            if now - self._last_connect_attempt >= self._reconnect_interval:
-                logger.info(f"[PS3] Attempting background status reconnect to ESP32 at {self._esp_url}")
-                self.connect()
+            if self._thread is None or not self._thread.is_alive():
+                # Start background thread to handle reconnection retries
+                import threading
+                self._stop_event = threading.Event()
+                self._thread = threading.Thread(target=self._background_poll_loop, daemon=True)
+                self._thread.start()
 
         return self._build_reading()
 
     def get_data(self) -> SensorReading:
-        """Return latest data from ESP32."""
-        if not self._connected:
-            now = time.time()
-            if now - self._last_connect_attempt >= self._reconnect_interval:
-                logger.info(f"[PS3] Attempting background data reconnect to ESP32 at {self._esp_url}")
-                self.connect()
-
-        if not self._connected or not self._esp_url:
-            return self._disconnected_reading()
-        if time.time() - self._last_data_time > self._heartbeat_timeout:
+        """Return latest cached data from ESP32."""
+        if self._connected and (time.time() - self._last_data_time > self._heartbeat_timeout):
             self._connected = False
+        if not self._connected:
             return self._disconnected_reading()
         return self._latest_reading
 
     def get_exo_data(self) -> ExoSensorData:
-        """Return latest exoskeleton-specific data (angles, motors, force)."""
+        """Return latest cached exoskeleton-specific data."""
         return self._latest_exo
 
     def poll_once(self) -> SensorReading:
         """
-        Synchronously poll ESP32 for one data frame.
-        Called from the session WS handler during each frame cycle.
+        Instantly return cached ESP32 reading without blocking the websocket frame handler.
         """
-        if not self._connected:
-            now = time.time()
-            if now - self._last_connect_attempt >= self._reconnect_interval:
-                logger.info(f"[PS3] Attempting auto-reconnect in poll_once to ESP32 at {self._esp_url}")
-                self.connect()
-
-        if not self._connected or not self._esp_url:
-            return self._disconnected_reading()
-
-        try:
-            import httpx
-            with httpx.Client(timeout=1.0) as client:
-                resp = client.get(f"{self._esp_url}/data")
-                if resp.status_code == 200:
-                    raw = resp.json()
-                    self._latest_exo = self._parse_exo_data(raw)
-                    self._latest_reading = self._build_reading()
-                    self._last_data_time = time.time()
-                    return self._latest_reading
-                else:
-                    return self._latest_reading
-        except Exception as e:
-            logger.debug(f"[PS3] Poll failed: {e}")
-            if time.time() - self._last_data_time > self._heartbeat_timeout:
-                self._connected = False
-            return self._latest_reading
+        # Trigger status check to handle reconnects in the background thread
+        self.get_status()
+        return self._latest_reading
 
     def calibrate(self) -> dict:
         """Send calibration/motor-homing command to ESP32."""

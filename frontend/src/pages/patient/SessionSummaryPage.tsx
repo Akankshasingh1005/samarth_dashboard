@@ -56,27 +56,41 @@ export default function SessionSummaryPage() {
   useEffect(() => {
     let cancelled = false;
     let retries = 0;
-    const MAX_RETRIES = 5;
-    const RETRY_INTERVAL_MS = 2000;
+    const MAX_RETRIES = 8;
+    const RETRY_INTERVAL_MS = 1500;
 
     const load = async () => {
       if (!sessionId) return;
       try {
         const sess = await sessionApi.get(sessionId);
         if (!cancelled) setSession(sess);
-        try {
-          const ps2 = await sessionApi.getPS2Results(sessionId);
-          if (!cancelled) setPs2Result(ps2);
-        } catch {}
 
-        // If session still shows 0 reps and we haven't exhausted retries,
-        // poll again — the WS save / complete_session update may not have
-        // landed in the DB yet.
-        const hasData = (sess?.total_reps ?? 0) > 0;
+        // Check if the session has meaningful data from the WS handler.
+        // The WS handler sets total_reps, session_score, and ps1_processed
+        // via an atomic $set. If these haven't landed yet, retry.
+        const hasData = (sess?.total_reps ?? 0) > 0 && sess?.ps1_processed;
         if (!hasData && retries < MAX_RETRIES) {
           retries++;
           setTimeout(load, RETRY_INTERVAL_MS);
           return;
+        }
+
+        // Load PS2 results independently — may not be available yet
+        // even if session data is. Retry a few times if needed.
+        let ps2Loaded = false;
+        for (let ps2Try = 0; ps2Try < 3 && !ps2Loaded && !cancelled; ps2Try++) {
+          try {
+            const ps2 = await sessionApi.getPS2Results(sessionId);
+            if (!cancelled) {
+              setPs2Result(ps2);
+              ps2Loaded = true;
+            }
+          } catch {
+            // PS2 results not ready yet — wait and retry
+            if (ps2Try < 2) {
+              await new Promise(r => setTimeout(r, 1000));
+            }
+          }
         }
       } finally {
         if (!cancelled) setLoading(false);

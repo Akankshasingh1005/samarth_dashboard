@@ -126,13 +126,19 @@ class ModelExerciseAnalyzer(BaseExerciseAnalyzer):
         features = []
         for joint in ["left_knee", "right_knee", "left_hip", "right_hip"]:
             signal = np.array(angle_data.get(joint, [180.0]), dtype=np.float32)
+            if signal.size == 0:
+                signal = np.array([180.0], dtype=np.float32)
             rom = float(np.max(signal) - np.min(signal))  # range of motion
             mean_speed = float(np.mean(np.abs(np.gradient(signal)))) if len(signal) > 1 else 0.0
             features.extend([rom / 90.0, mean_speed / 20.0])  # normalize
 
         # Bilateral symmetry feature
         lk = np.array(angle_data.get("left_knee", [180.0]), dtype=np.float32)
+        if lk.size == 0:
+            lk = np.array([180.0], dtype=np.float32)
         rk = np.array(angle_data.get("right_knee", [180.0]), dtype=np.float32)
+        if rk.size == 0:
+            rk = np.array([180.0], dtype=np.float32)
         n = min(len(lk), len(rk))
         if n > 1:
             asymmetry = float(np.mean(np.abs(lk[:n] - rk[:n]))) / 30.0
@@ -351,9 +357,9 @@ class ModelExerciseAnalyzer(BaseExerciseAnalyzer):
             start_f = rep.get("start_frame", 0)
             end_f = rep.get("end_frame", len(angle_data.get("left_knee", [])))
 
-            # Slice angle data for this rep
+            # Slice angle data for this rep (inclusive of end_f)
             rep_angle_slice = {
-                joint: angle_data.get(joint, [])[start_f:end_f]
+                joint: angle_data.get(joint, [])[start_f:end_f + 1]
                 for joint in self._joint_order
             }
 

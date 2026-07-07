@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Activity, ArrowLeft, ArrowRight, Calendar, Clock,
-  Target, Trophy, Search, Filter, ChevronDown
+  Target, Trophy, Search, Filter, ChevronDown, Trash2
 } from 'lucide-react';
 import { sessionApi } from '@/api';
 import type { Session } from '@/types';
@@ -17,6 +17,21 @@ export default function AllSessionsPage() {
   const [sortBy, setSortBy] = useState<SortBy>('newest');
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+
+  const handleDeleteSession = async (e: React.MouseEvent, sessionId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!window.confirm("Are you sure you want to delete this session and all of its data? This action cannot be undone.")) {
+      return;
+    }
+    try {
+      await sessionApi.delete(sessionId);
+      setSessions(prev => prev.filter(s => s.id !== sessionId));
+    } catch (err) {
+      console.error("Failed to delete session:", err);
+      alert("Failed to delete session. Please try again.");
+    }
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -307,6 +322,14 @@ export default function AllSessionsPage() {
                       }`}>
                         {config.label}
                       </span>
+                      <button
+                        onClick={(e) => handleDeleteSession(e, session.id)}
+                        className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg hover:bg-red-50/50 transition-colors z-10"
+                        title="Delete Session"
+                        id={`delete-btn-${session.id}`}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                       <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-brand transition-colors" />
                     </div>
                   </Link>

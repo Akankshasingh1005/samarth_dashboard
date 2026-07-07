@@ -296,6 +296,7 @@ void initWiFi() {
   // Tries to auto-connect using last saved credentials.
   // If it can't, it starts an Access Point called "Samarth-ESP32-Setup"
   wm.setConfigPortalTimeout(180);  // Close configuration portal after 3 minutes
+  wm.setConnectTimeout(8);         // Limit saved Wi-Fi search to 8 seconds before starting setup portal AP
 
   Serial.println("Connecting to WiFi (or starting setup portal)...");
   if (!wm.autoConnect("Samarth-ESP32-Setup")) {
