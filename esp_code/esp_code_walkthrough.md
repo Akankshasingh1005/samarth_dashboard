@@ -1,10 +1,10 @@
-# 📂 Complete Walkthrough of the `esp_code` Folder
+# Complete Walkthrough of the `esp_code` Folder
 
 This document provides a **detailed, code-block-level** guide to every file in the `esp_code` directory — what each function does, how data flows between ESP A → ESP B → Backend → ML Inference, and exactly which backend code sections to check when troubleshooting hardware connection errors.
 
 ---
 
-## 🗺️ Folder Structure
+## Folder Structure
 
 ```
 esp_code/
@@ -22,7 +22,7 @@ esp_code/
 
 ---
 
-## 🔄 Data Flow Overview
+## Data Flow Overview
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -77,7 +77,7 @@ esp_code/
 
 ---
 
-## 📄 File 1: `esp_to_esp/esp_to_esp.ino` (ESP A — Exo Unit)
+## File 1: `esp_to_esp/esp_to_esp.ino` (ESP A — Exo Unit)
 
 This is the firmware for the **physical exoskeleton**. It reads sensors, drives motors, and transmits telemetry as JSON over ESP-NOW radio to ESP B.
 
@@ -238,7 +238,7 @@ The core angle calculation function. For each IMU:
 
 Called once on boot. Takes 100 gyro readings over 500ms with the device still, averages them to find the baseline offset. This offset is subtracted from every future gyro reading.
 
-> **⚠️ Keep the exoskeleton perfectly still during the ~1 second boot calibration or angles will be wrong.**
+> **Keep the exoskeleton perfectly still during the ~1 second boot calibration or angles will be wrong.**
 
 #### `readIMUs()` (Line 193)
 
@@ -377,7 +377,7 @@ Sensors are read and motors adjusted as fast as possible (~200Hz). Telemetry JSO
 ---
 ---
 
-## 📄 File 2: `esp_to_website/esp_to_website.ino` (ESP B — Bridge Unit)
+## File 2: `esp_to_website/esp_to_website.ino` (ESP B — Bridge Unit)
 
 This is the firmware for the **WiFi gateway** ESP32. It receives JSON telemetry from ESP A over radio, and serves it to the backend over HTTP.
 
@@ -521,7 +521,7 @@ Legacy endpoint that returns raw boolean values for motor directions. Returns th
 
 ---
 
-#### `handleData()` — `GET /data` (Line 166) ⭐ PRIMARY ENDPOINT
+#### `handleData()` — `GET /data` (Line 166) PRIMARY ENDPOINT
 
 **Called by**: `real_sensor.py` Line 97 (`_background_poll_loop`) and Line 137 (`connect`).
 
@@ -618,7 +618,7 @@ The loop only handles HTTP requests. ESP-NOW data arrives via the `onDataRecv()`
 ---
 ---
 
-## 📄 File 3: `test_esp_communication.py` (Hardware Test Script)
+## File 3: `test_esp_communication.py` (Hardware Test Script)
 
 A standalone Python script to verify the entire ESP A ↔ ESP B ↔ laptop communication path **without starting the full backend**.
 
@@ -648,7 +648,7 @@ python test_esp_communication.py --ip 192.168.x.x
 ---
 ---
 
-## 🔧 Backend Files & Troubleshooting Reference
+## Backend Files & Troubleshooting Reference
 
 When hardware connection issues occur, these are the specific backend files and code sections to check:
 
@@ -900,7 +900,7 @@ PS3_COMMAND_TIMEOUT: float = 2.0       # Seconds to wait for command ACK
 
 ---
 
-## 🚨 Quick Troubleshooting Checklist
+## Quick Troubleshooting Checklist
 
 | Symptom | Check ESP Side | Check Backend Side |
 |---------|---------------|-------------------|
@@ -916,7 +916,7 @@ PS3_COMMAND_TIMEOUT: float = 2.0       # Seconds to wait for command ACK
 
 ---
 
-## 🗺️ Visual System Architecture & Connection Diagram
+## Visual System Architecture & Connection Diagram
 
 Here is how all hardware components, networking routes, local server logic, and the **RehabNet ML Model** are connected and interact during a live physical therapy session:
 
@@ -984,7 +984,7 @@ graph TD
 
 ---
 
-## 📋 Files to Flash
+## Files to Flash
 
 | ESP Board | File to Upload | Libraries Needed |
 |-----------|---------------|-----------------|

@@ -1,0 +1,4 @@
+video_name,joint,correlation,left_overall_rom,right_overall_rom,symmetry_index,average_angle_difference,score_percentage,total_reps
+demo_squat.mp4,left_knee,1.0,7.673861546209082e-13,7.673861546209082e-13,1.0,0.0,100.0,0
+demo_squat.mp4,left_hip,1.0,7.673861546209082e-13,7.673861546209082e-13,1.0,0.0,100.0,0
+demo_squat.mp4,left_ankle,1.0,7.673861546209082e-13,7.673861546209082e-13,1.0,0.0,100.0,0
