@@ -59,40 +59,7 @@ typedef struct {
 telemetry_t latestTelemetry = {};
 bool telemetryReceived = false; // True when we successfully receive the first packet from ESP A
 
-// ==================== INTERACTIVE EMULATOR MODULE ====================
-// This simulates telemetry coming from ESP A if it's offline,
-// allowing you to test the full website connection using just ESP B.
-bool emulationActive = true; 
-int emulatedKneePwm = 0;
-int emulatedHipPwm = 0;
 
-void updateEmulation() {
-  if (!emulationActive) return;
-  
-  static unsigned long lastUpdate = 0;
-  unsigned long now = millis();
-  if (now - lastUpdate < 50) return; // Update at 20 Hz (every 50ms)
-  lastUpdate = now;
-
-  float t = now / 1000.0;
-  
-  // Emulate sensors as sine waves (mimics leg walking movement)
-  latestTelemetry.knee_angle = 45.0 + 30.0 * sin(t);      // knee moves between 15° and 75°
-  latestTelemetry.hip_angle = 20.0 + 15.0 * cos(t);       // hip moves between 5° and 35°
-  latestTelemetry.foot_force = (sin(t) > 0) ? 5.2 : 0.0;  // foot pressure force
-  latestTelemetry.stance = (latestTelemetry.foot_force > 2.0);
-  latestTelemetry.battery_percent = 88;
-  latestTelemetry.calibration_status = true;
-  
-  // Reflect motor command outputs in the emulation data
-  latestTelemetry.knee_motor_pwm = emulatedKneePwm;
-  latestTelemetry.knee_motor_dir = true;
-  latestTelemetry.hip_motor_pwm = emulatedHipPwm;
-  latestTelemetry.hip_motor_dir = true;
-  latestTelemetry.motors_active = (emulatedKneePwm > 0 || emulatedHipPwm > 0);
-  
-  telemetryReceived = true; // Mark as online for the web server
-}
 
 // Create local Web Server on standard HTTP port 80
 WebServer server(80);
@@ -108,10 +75,30 @@ void onDataRecv(const esp_now_recv_info_t *info, const uint8_t *data, int len) {
 void onDataSent(const uint8_t *mac, esp_now_send_status_t status) {}
 void onDataRecv(const uint8_t *mac, const uint8_t *data, int len) {
 #endif
-  if (len != sizeof(telemetry_t)) return; // Ignore corrupted packets
-  memcpy(&latestTelemetry, data, sizeof(latestTelemetry));
+  // ESP A now sends JSON strings, parse them with ArduinoJson
+  // Expected format: {"knee_angle":75.3,"hip_angle":45.1,"foot_force":3.42,
+  //                   "stance":true,"knee_pwm":95,"knee_dir":"ext",
+  //                   "hip_pwm":60,"hip_dir":"ext","motors":"on"}
+  JsonDocument doc;
+  DeserializationError err = deserializeJson(doc, (const char*)data, len);
+  if (err) {
+    Serial.print("ESP-NOW JSON parse error: ");
+    Serial.println(err.c_str());
+    return;
+  }
+
+  latestTelemetry.knee_angle      = doc["knee_angle"] | 0.0f;
+  latestTelemetry.hip_angle       = doc["hip_angle"] | 0.0f;
+  latestTelemetry.foot_force      = doc["foot_force"] | 0.0f;
+  latestTelemetry.stance          = doc["stance"] | false;
+  latestTelemetry.knee_motor_pwm  = doc["knee_pwm"] | 0;
+  latestTelemetry.knee_motor_dir  = (strcmp(doc["knee_dir"] | "ext", "ext") == 0);
+  latestTelemetry.hip_motor_pwm   = doc["hip_pwm"] | 0;
+  latestTelemetry.hip_motor_dir   = (strcmp(doc["hip_dir"] | "ext", "ext") == 0);
+  latestTelemetry.motors_active   = (strcmp(doc["motors"] | "off", "on") == 0);
+  latestTelemetry.battery_percent = 100;  // Battery not sent in JSON, default to 100
+  latestTelemetry.calibration_status = true;
   telemetryReceived = true;
-  emulationActive = false; // 🚫 Auto-disable emulator as soon as real ESP A sends a packet!
 }
 
 // ==================== HELPER: Relay command to Exo Unit ====================
@@ -120,27 +107,14 @@ void relayCommandToExo(int mode_id, float target_torque) {
   cmd.mode_id = mode_id;
   cmd.target_torque = target_torque;
   
-  // Update emulator state locally so website commands change the graphs!
-  if (emulationActive) {
-    if (mode_id == 0) {
-      emulatedKneePwm = 0;
-      emulatedHipPwm = 0;
-    } else {
-      emulatedKneePwm = constrain((int)(target_torque * 120), 0, 255);
-      emulatedHipPwm = constrain((int)(target_torque * 100), 0, 255);
-    }
-    Serial.print("🧪 [Emulator] Received Mode: ");
-    Serial.print(mode_id);
-    Serial.print(", Torque: ");
-    Serial.print(target_torque);
-    Serial.print("Nm -> Set Knee PWM: ");
-    Serial.print(emulatedKneePwm);
-    Serial.print(", Hip PWM: ");
-    Serial.println(emulatedHipPwm);
-  }
-  
   // Send over ESP-NOW radio to ESP A
   esp_now_send(exoMAC, (uint8_t*)&cmd, sizeof(cmd));
+
+  Serial.print("Command relayed to Exo Unit: Mode=");
+  Serial.print(mode_id);
+  Serial.print(", Torque=");
+  Serial.print(target_torque);
+  Serial.println("Nm");
 }
 
 // ==================== HTTP WEB SERVER HANDLERS ====================
@@ -366,7 +340,6 @@ void setup() {
 
 // ==================== LOOP (RUNS REPEATEDLY) ====================
 void loop() {
-  updateEmulation();
   // Check for and process incoming HTTP client requests
   server.handleClient();
 }
